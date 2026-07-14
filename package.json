@@ -1,0 +1,16 @@
+{
+  "name": "moecraft",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.13.1",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.5",
+    "typescript": "^5.8.3"
+  }
+}
