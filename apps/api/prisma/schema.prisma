@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum MerchantStatus {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+enum ProductStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+model User {
+  id           String     @id @default(cuid())
+  username     String     @unique @db.VarChar(80)
+  displayName  String     @db.VarChar(120)
+  passwordHash String     @db.VarChar(255)
+  isActive     Boolean    @default(true)
+  roles        UserRole[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String
+  role      String   @db.VarChar(50)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@index([role])
+}
+
+model Merchant {
+  id        String         @id @default(cuid())
+  name      String         @db.VarChar(160)
+  status    MerchantStatus @default(ACTIVE)
+  store     Store?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model Store {
+  id         String    @id @default(cuid())
+  merchantId String    @unique
+  name       String    @db.VarChar(160)
+  slug       String    @unique @db.VarChar(120)
+  isOpen     Boolean   @default(true)
+  merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Restrict)
+  products   Product[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  slug      String    @unique @db.VarChar(120)
+  nameZhCn  String    @db.VarChar(160)
+  nameEnUs  String?   @db.VarChar(160)
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id         String        @id @default(cuid())
+  storeId    String
+  categoryId String
+  titleZhCn  String        @db.VarChar(200)
+  titleEnUs  String?       @db.VarChar(200)
+  status     ProductStatus @default(DRAFT)
+  store      Store         @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  category   Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  skus       Sku[]
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([storeId, status])
+  @@index([categoryId, status])
+}
+
+model Sku {
+  id          String     @id @default(cuid())
+  productId   String
+  code        String     @unique @db.VarChar(80)
+  nameZhCn    String     @db.VarChar(160)
+  nameEnUs    String?    @db.VarChar(160)
+  priceAmount Int
+  currency    String     @default("CNY") @db.Char(3)
+  product     Product    @relation(fields: [productId], references: [id], onDelete: Restrict)
+  inventory   Inventory?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([productId])
+}
+
+model Inventory {
+  id        String   @id @default(cuid())
+  skuId     String   @unique
+  onHand    Int      @default(0)
+  reserved  Int      @default(0)
+  sku       Sku      @relation(fields: [skuId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

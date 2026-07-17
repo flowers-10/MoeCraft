@@ -64,6 +64,19 @@ pnpm --filter @moecraft/api dev
 
 修改单个应用时应运行最小范围的 `typecheck` 或 `build`；跨包改动在根目录运行 `pnpm typecheck`，交付前按改动风险运行 `pnpm build`。
 
+## 数据库工作流
+
+数据库命令在 API 包中执行，并读取未跟踪的 `apps/api/.env`：
+
+```bash
+pnpm --filter @moecraft/api db:generate
+pnpm --filter @moecraft/api db:migrate -- --name describe_change
+pnpm --filter @moecraft/api db:deploy
+pnpm --filter @moecraft/api db:seed
+```
+
+本地首次迁移前先创建 `moecraft` 数据库。Seed 是幂等的，但必须在本地 `.env` 中显式设置至少 12 位的 `SEED_ADMIN_PASSWORD`；仓库不提供默认管理员密码。`db:migrate` 只用于本地开发，部署环境使用已提交迁移的 `db:deploy`。
+
 ## 当前边界
 
 - Storefront 是基础商城首页骨架。
