@@ -1,0 +1,92 @@
+:root {
+  color-scheme: light dark;
+  --app-bg: #eef1f7;
+  --shell-bg: #f8f9fc;
+  --surface: #ffffff;
+  --surface-raised: #f5f7fb;
+  --surface-subtle: #eef1f7;
+  --text: #202436;
+  --text-secondary: #596174;
+  --text-muted: #7e8798;
+  --border: #dce1eb;
+  --accent: #4255d4;
+  --accent-strong: #3347c5;
+  --accent-soft: #e3e7ff;
+  --success: #158269;
+  --success-soft: #dff3ec;
+  --danger: #c13f5c;
+  --danger-soft: #f9e1e8;
+  --warning: #ad7419;
+  --shadow: 0 12px 28px rgb(39 49 80 / 10%);
+}
+
+:root[data-theme="dark"],
+.wrapper[data-theme="dark"] {
+  color-scheme: dark;
+  --app-bg: #252954;
+  --shell-bg: #0e0e23;
+  --surface: #13162f;
+  --surface-raised: #1a2049;
+  --surface-subtle: #10122b;
+  --text: #e7e8ea;
+  --text-secondary: #bebec4;
+  --text-muted: #9b9ca7;
+  --border: #30355d;
+  --accent: #5368ec;
+  --accent-strong: #4255d4;
+  --accent-soft: #1a214d;
+  --success: #1aa385;
+  --success-soft: #142940;
+  --danger: #d14b69;
+  --danger-soft: #2e2142;
+  --warning: #d6a54c;
+  --shadow: 0 16px 18px rgb(5 6 21 / 35%);
+}
+
+:root[data-theme="light"],
+.wrapper[data-theme="light"] {
+  color-scheme: light;
+  --app-bg: #eef1f7;
+  --shell-bg: #f8f9fc;
+  --surface: #ffffff;
+  --surface-raised: #f5f7fb;
+  --surface-subtle: #eef1f7;
+  --text: #202436;
+  --text-secondary: #596174;
+  --text-muted: #7e8798;
+  --border: #dce1eb;
+  --accent: #4255d4;
+  --accent-strong: #3347c5;
+  --accent-soft: #e3e7ff;
+  --success: #158269;
+  --success-soft: #dff3ec;
+  --danger: #c13f5c;
+  --danger-soft: #f9e1e8;
+  --warning: #ad7419;
+  --shadow: 0 12px 28px rgb(39 49 80 / 10%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]),
+  .wrapper:not([data-theme]) {
+    color-scheme: dark;
+    --app-bg: #252954;
+    --shell-bg: #0e0e23;
+    --surface: #13162f;
+    --surface-raised: #1a2049;
+    --surface-subtle: #10122b;
+    --text: #e7e8ea;
+    --text-secondary: #bebec4;
+    --text-muted: #9b9ca7;
+    --border: #30355d;
+    --accent: #5368ec;
+    --accent-strong: #4255d4;
+    --accent-soft: #1a214d;
+    --success: #1aa385;
+    --success-soft: #142940;
+    --danger: #d14b69;
+    --danger-soft: #2e2142;
+    --warning: #d6a54c;
+    --shadow: 0 16px 18px rgb(5 6 21 / 35%);
+  }
+}
