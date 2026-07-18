@@ -1,20 +1,24 @@
 import { computed, ref } from "vue";
+import { enUS } from "./locales/en-US";
+import { zhCN, type MessageKey } from "./locales/zh-CN";
 
 export type Locale = "zh-CN" | "en-US";
-const saved = localStorage.getItem("mc-locale");
-const locale = ref<Locale>(saved === "en-US" ? "en-US" : "zh-CN");
+export type { MessageKey };
+export type MessageParams = Record<string, string | number>;
 
-const messages = {
-  "zh-CN": { overview: "工作台", onboarding: "商家入驻", products: "商品管理", inventory: "库存管理", orders: "订单中心", afterSales: "售后服务", members: "成员管理", reports: "数据报表", settings: "系统设置", greeting: "欢迎回来", platformAdmin: "平台管理员", platformOperator: "平台运营", merchantOwner: "商家店主", merchantStaff: "商家员工", customer: "申请人", comingSoon: "模块正在建设中", comingSoonHint: "导航与权限入口已经就绪，业务功能会按 Harness 单元逐步交付。", logout: "退出登录", switchLanguage: "切换语言", theme: "切换主题", localTime: "本地时间" },
-  "en-US": { overview: "Overview", onboarding: "Onboarding", products: "Products", inventory: "Inventory", orders: "Orders", afterSales: "After-sales", members: "Team", reports: "Analytics", settings: "Settings", greeting: "Welcome back", platformAdmin: "Platform admin", platformOperator: "Platform operator", merchantOwner: "Merchant owner", merchantStaff: "Merchant staff", customer: "Applicant", comingSoon: "Module in progress", comingSoonHint: "Navigation and access boundaries are ready. Business features will ship unit by unit.", logout: "Sign out", switchLanguage: "Switch language", theme: "Switch theme", localTime: "Local time" }
-} as const;
+const savedLocale = localStorage.getItem("mc-locale");
+const localeState = ref<Locale>(savedLocale === "en-US" ? "en-US" : "zh-CN");
+const dictionaries: Record<Locale, Record<MessageKey, string>> = { "zh-CN": zhCN, "en-US": enUS };
 
-export type MessageKey = keyof typeof messages["zh-CN"];
-export function useLocale() {
-  const t = (key: MessageKey) => messages[locale.value][key];
-  function setLocale(next: Locale) { locale.value = next; localStorage.setItem("mc-locale", next); document.documentElement.lang = next; }
-  function toggleLocale() { setLocale(locale.value === "zh-CN" ? "en-US" : "zh-CN"); }
-  return { locale: computed(() => locale.value), t, setLocale, toggleLocale };
+function translate(key: MessageKey, params: MessageParams = {}): string {
+  const template = dictionaries[localeState.value][key];
+  return Object.entries(params).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, String(value)), template);
 }
 
-document.documentElement.lang = locale.value;
+export function useLocale() {
+  function setLocale(next: Locale) { localeState.value = next; localStorage.setItem("mc-locale", next); document.documentElement.lang = next; }
+  function toggleLocale() { setLocale(localeState.value === "zh-CN" ? "en-US" : "zh-CN"); }
+  return { locale: computed(() => localeState.value), t: translate, setLocale, toggleLocale };
+}
+
+document.documentElement.lang = localeState.value;

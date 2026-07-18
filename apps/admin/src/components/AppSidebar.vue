@@ -6,7 +6,7 @@ defineEmits<{ select: [page: string] }>();
 const { t } = useLocale();
 type NavItem = { id: string; label: MessageKey; icon: string; section?: "bottom" };
 const items: NavItem[] = [
-  { id: "overview", label: "overview", icon: "⌂" }, { id: "onboarding", label: "onboarding", icon: "◇" }, { id: "products", label: "products", icon: "▦" }, { id: "inventory", label: "inventory", icon: "▤" }, { id: "orders", label: "orders", icon: "▣" }, { id: "afterSales", label: "afterSales", icon: "↩" }, { id: "members", label: "members", icon: "♙" }, { id: "reports", label: "reports", icon: "⌁" }, { id: "settings", label: "settings", icon: "⚙", section: "bottom" }
+  { id: "overview", label: "nav.overview", icon: "⌂" }, { id: "onboarding", label: "nav.onboarding", icon: "◇" }, { id: "products", label: "nav.products", icon: "▦" }, { id: "inventory", label: "nav.inventory", icon: "▤" }, { id: "orders", label: "nav.orders", icon: "▣" }, { id: "afterSales", label: "nav.afterSales", icon: "↩" }, { id: "members", label: "nav.members", icon: "♙" }, { id: "reports", label: "nav.reports", icon: "⌁" }, { id: "settings", label: "nav.settings", icon: "⚙", section: "bottom" }
 ];
 </script>
 <template><aside class="sidebar"><div class="brand"><span>M</span><div><b>MoeCraft</b><small>MERCHANT</small></div></div><nav aria-label="后台主导航"><button v-for="item in items" :key="item.id" :class="[{active:activePage===item.id},{bottom:item.section==='bottom'}]" :aria-current="activePage===item.id?'page':undefined" @click="$emit('select',item.id)"><i>{{item.icon}}</i><span>{{t(item.label)}}</span><em v-if="item.id==='onboarding'" /></button></nav><div class="version"><span>MC</span><div><b>Console</b><small>v0.11</small></div></div></aside></template>
