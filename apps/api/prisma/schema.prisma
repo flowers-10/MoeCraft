@@ -30,8 +30,52 @@ model User {
   passwordHash String     @db.VarChar(255)
   isActive     Boolean    @default(true)
   roles        UserRole[]
+  sessions     Session[]
+  resetTokens  PasswordResetToken[]
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+}
+
+model Session {
+  id               String    @id @default(cuid())
+  userId           String
+  refreshTokenHash String    @db.VarChar(255)
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  userAgent        String?   @db.VarChar(255)
+  ipAddress        String?   @db.VarChar(64)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique @db.Char(64)
+  expiresAt DateTime
+  usedAt    DateTime?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String   @db.VarChar(100)
+  targetType String?  @db.VarChar(80)
+  targetId   String?  @db.VarChar(191)
+  ipAddress  String?  @db.VarChar(64)
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
 }
 
 model UserRole {
