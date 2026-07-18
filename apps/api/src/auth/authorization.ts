@@ -2,6 +2,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable, SetMetad
 import { Reflector } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
 import type { Permission, UserRole } from "@moecraft/shared";
+import { PrismaService } from "../prisma/prisma.service";
 
 const P = { catalogRead:"catalog:read",productRead:"product:read",productManage:"product:manage",inventoryRead:"inventory:read",orderRead:"order:read",merchantRead:"merchant:read",merchantReview:"merchant:review",catalogManage:"catalog:manage",productReview:"product:review",auditRead:"audit:read" } as const satisfies Record<string, Permission>;
 
@@ -18,7 +19,7 @@ export type RequestPrincipal = { sub: string; roles: UserRole[]; merchantId?: st
 
 @Injectable()
 export class AuthorizationGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector, private readonly jwt: JwtService) {}
+  constructor(private readonly reflector: Reflector, private readonly jwt: JwtService, private readonly prisma: PrismaService) {}
   async canActivate(context: ExecutionContext) {
     const roles = this.reflector.getAllAndOverride<UserRole[]>("roles", [context.getHandler(), context.getClass()]) ?? [];
     const permissions = this.reflector.getAllAndOverride<Permission[]>("permissions", [context.getHandler(), context.getClass()]) ?? [];
@@ -26,7 +27,17 @@ export class AuthorizationGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<{ headers: { authorization?: string }; user?: RequestPrincipal }>();
     const token = request.headers.authorization?.replace(/^Bearer\s+/i, "");
     if (!token) throw new UnauthorizedException("AUTHENTICATION_REQUIRED");
-    const principal = await this.jwt.verifyAsync<RequestPrincipal>(token).catch(() => { throw new UnauthorizedException("AUTHENTICATION_REQUIRED"); });
+    const tokenPrincipal = await this.jwt.verifyAsync<RequestPrincipal>(token).catch(() => { throw new UnauthorizedException("AUTHENTICATION_REQUIRED"); });
+    const user = await this.prisma.user.findUnique({
+      where: { id: tokenPrincipal.sub },
+      select: { isActive: true, roles: { select: { role: true } }, merchantMemberships: { select: { merchantId: true }, take: 1 } }
+    });
+    if (!user?.isActive) throw new UnauthorizedException("AUTHENTICATION_REQUIRED");
+    const principal: RequestPrincipal = {
+      sub: tokenPrincipal.sub,
+      roles: user.roles.map(({ role }) => role as UserRole),
+      merchantId: user.merchantMemberships[0]?.merchantId
+    };
     request.user = principal;
     if (roles.length && !roles.some((role) => principal.roles.includes(role))) throw new ForbiddenException("PERMISSION_DENIED");
     if (permissions.length && !permissions.every((permission) => principal.roles.some((role) => ROLE_PERMISSIONS[role].includes(permission)))) throw new ForbiddenException("PERMISSION_DENIED");

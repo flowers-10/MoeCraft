@@ -22,5 +22,6 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}) {
   let response = await execute(sessionStorage.getItem("mc-admin-token"));
   if (response.status === 401) { const token = await refresh(); if (token) response = await execute(token); }
   if (!response.ok) throw { code: "REQUEST_FAILED", message: response.statusText, status: response.status } satisfies ApiError;
-  return response.json() as Promise<T>;
+  const body = await response.text();
+  return (body ? JSON.parse(body) : null) as T;
 }

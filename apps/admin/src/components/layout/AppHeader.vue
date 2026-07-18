@@ -28,7 +28,8 @@ const roleKeys: Record<UserRole, MessageKey> = {
 const pageKey = computed(() => pageKeys[props.activePage] ?? "nav.overview");
 const time = computed(() => new Intl.DateTimeFormat(locale.value, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(now.value));
 const date = computed(() => new Intl.DateTimeFormat(locale.value, { month: "short", day: "numeric", weekday: "short" }).format(now.value));
-const primaryRole = computed(() => props.user?.roles[0] ?? "CUSTOMER");
+const rolePriority: UserRole[] = ["PLATFORM_ADMIN", "PLATFORM_OPERATOR", "MERCHANT_OWNER", "MERCHANT_STAFF", "CUSTOMER"];
+const primaryRole = computed(() => rolePriority.find((item) => props.user?.roles.includes(item)) ?? "CUSTOMER");
 const role = computed(() => t(roleKeys[primaryRole.value]));
 const initials = computed(() => (props.user?.displayName || props.user?.username || "M").slice(0, 1).toUpperCase());
 const isOwner = computed(() => props.user?.roles.includes("MERCHANT_OWNER") ?? false);

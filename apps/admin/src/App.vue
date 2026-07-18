@@ -34,7 +34,7 @@ onMounted(initializeSession);
     <AppSidebar :active-page="activePage" :roles="currentUser?.roles ?? []" @select="navigate" />
     <main class="main-container">
       <AppHeader :active-page="activePage" :theme="theme" :user="currentUser" @toggle-theme="cycleTheme" @toggle-locale="toggleLocale" @navigate="navigate" @logout="signOut" />
-      <RouterView v-slot="{ Component }"><component :is="Component" :key="route.fullPath" :roles="currentUser.roles" /></RouterView>
+      <RouterView v-slot="{ Component }"><component :is="Component" :roles="currentUser.roles" /></RouterView>
     </main>
   </div>
 </template>

@@ -8,7 +8,15 @@ import type { InviteStaffDto, SaveStoreProfileDto, UpdateMemberRoleDto } from ".
 export class StoreService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async mine(userId: string) { const merchant = await this.requireMerchant(userId); const store = await this.prisma.store.findUnique({ where: { merchantId: merchant.id } }); return store ? this.storeView(store, merchant.status) : null; }
+  async mine(userId: string): Promise<StoreProfileView> {
+    const merchant = await this.requireMerchant(userId);
+    const store = await this.prisma.store.upsert({
+      where: { merchantId: merchant.id },
+      update: {},
+      create: { merchantId: merchant.id, name: merchant.name, slug: `merchant-${(merchant.ownerId ?? merchant.id).toLowerCase()}` }
+    });
+    return this.storeView(store, merchant.status);
+  }
   async save(userId: string, dto: SaveStoreProfileDto): Promise<StoreProfileView> {
     const merchant = await this.requireMerchant(userId, true); await this.validateMedia(userId, [dto.logoFileId, dto.bannerFileId].filter((id): id is string => Boolean(id)));
     const returnAddress: Prisma.InputJsonObject = { ...dto.returnAddress };
