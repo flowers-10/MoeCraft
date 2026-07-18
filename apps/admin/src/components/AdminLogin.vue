@@ -11,7 +11,7 @@ async function submit() {
     const response = await fetch(`${API_BASE_URL}/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ account: account.value, password: password.value }) });
     if (!response.ok) throw new Error();
     const data = await response.json() as { accessToken: string; refreshToken: string; user: { roles: string[] } };
-    if (!data.user.roles.some((role) => role.startsWith("PLATFORM_") || role.startsWith("MERCHANT_"))) throw new Error();
+    if (!data.user.roles.some((role) => role === "CUSTOMER" || role.startsWith("PLATFORM_") || role.startsWith("MERCHANT_"))) throw new Error();
     sessionStorage.setItem("mc-admin-token", data.accessToken);
     sessionStorage.setItem("mc-admin-refresh", data.refreshToken);
     emit("authenticated", data.accessToken);

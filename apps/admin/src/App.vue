@@ -7,9 +7,16 @@ import FigureCalendar from "./components/FigureCalendar.vue";
 import FigureOffer from "./components/FigureOffer.vue";
 import OrderBoard from "./components/OrderBoard.vue";
 import AdminLogin from "./components/AdminLogin.vue";
+import MerchantOnboarding from "./components/MerchantOnboarding.vue";
+import type { UserRole } from "@moecraft/shared";
 
 const adminToken = ref(sessionStorage.getItem("mc-admin-token"));
-const activePage = ref("orders");
+const activePage = ref("onboarding");
+function tokenRoles(token: string | null): UserRole[] {
+  if (!token) return [];
+  try { return (JSON.parse(atob(token.split(".")[1] ?? "")) as { roles?: UserRole[] }).roles ?? []; } catch { return []; }
+}
+const roles = computed(() => tokenRoles(adminToken.value));
 const theme = ref<"system" | "light" | "dark">("system");
 const themeAttribute = computed(() => (theme.value === "system" ? undefined : theme.value));
 
@@ -24,7 +31,8 @@ function cycleTheme() {
     <AppSidebar :active-page="activePage" @select="activePage = $event" />
     <main class="main-container">
       <AppHeader :active-page="activePage" :theme="theme" @select="activePage = $event" @toggle-theme="cycleTheme" />
-      <section v-if="activePage === 'orders'" class="dashboard content-scroll">
+      <MerchantOnboarding v-if="activePage === 'onboarding'" :roles="roles" />
+      <section v-else-if="activePage === 'orders'" class="dashboard content-scroll">
         <div class="user-box first-box">
           <FigureActivity />
           <FigureOffer />

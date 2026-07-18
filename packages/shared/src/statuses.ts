@@ -8,6 +8,19 @@ export const MERCHANT_APPLICATION_STATUSES = [
 ] as const;
 export type MerchantApplicationStatus = (typeof MERCHANT_APPLICATION_STATUSES)[number];
 
+export const MERCHANT_APPLICATION_TRANSITIONS: Readonly<Record<MerchantApplicationStatus, readonly MerchantApplicationStatus[]>> = {
+  DRAFT: ["SUBMITTED", "WITHDRAWN"],
+  SUBMITTED: ["NEEDS_CHANGES", "APPROVED", "REJECTED", "WITHDRAWN"],
+  NEEDS_CHANGES: ["SUBMITTED", "WITHDRAWN"],
+  APPROVED: [],
+  REJECTED: [],
+  WITHDRAWN: []
+};
+
+export function canTransitionMerchantApplication(from: MerchantApplicationStatus, to: MerchantApplicationStatus): boolean {
+  return MERCHANT_APPLICATION_TRANSITIONS[from].includes(to);
+}
+
 export const PRODUCT_STATUSES = [
   "DRAFT",
   "PENDING_REVIEW",

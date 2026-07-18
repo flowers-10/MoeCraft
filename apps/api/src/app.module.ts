@@ -11,6 +11,7 @@ import { AuthModule } from "./auth/auth.module";
 import { AuthorizationGuard } from "./auth/authorization";
 import { AuditModule } from "./audit/audit.module";
 import { FilesModule } from "./files/files.module";
+import { MerchantsModule } from "./merchants/merchants.module";
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { FilesModule } from "./files/files.module";
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
     AuthModule,
     AuditModule,
-    FilesModule
+    FilesModule,
+    MerchantsModule
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }, { provide: APP_GUARD, useClass: AuthorizationGuard }]

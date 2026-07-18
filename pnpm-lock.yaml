@@ -17,6 +17,9 @@ importers:
 
   apps/admin:
     dependencies:
+      '@moecraft/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       vue:
         specifier: ^3.5.18
         version: 3.5.39(typescript@5.9.3)

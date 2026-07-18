@@ -30,6 +30,15 @@ enum FileStatus {
   DELETED
 }
 
+enum MerchantApplicationStatus {
+  DRAFT
+  SUBMITTED
+  NEEDS_CHANGES
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
 model FileAsset {
   id          String     @id @default(cuid())
   ownerId     String
@@ -54,6 +63,10 @@ model User {
   roles        UserRole[]
   sessions     Session[]
   resetTokens  PasswordResetToken[]
+  merchantApplications MerchantApplication[] @relation("MerchantApplicant")
+  reviewedMerchantApplications MerchantApplication[] @relation("MerchantReviewer")
+  applicationTimeline MerchantApplicationTimeline[]
+  ownedMerchant Merchant? @relation("MerchantOwner")
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 }
@@ -113,11 +126,52 @@ model UserRole {
 
 model Merchant {
   id        String         @id @default(cuid())
+  ownerId   String?        @unique
   name      String         @db.VarChar(160)
   status    MerchantStatus @default(ACTIVE)
   store     Store?
+  owner     User?          @relation("MerchantOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
+}
+
+model MerchantApplication {
+  id                    String                    @id @default(cuid())
+  applicantId           String
+  reviewerId            String?
+  status                MerchantApplicationStatus @default(DRAFT)
+  companyName           String                    @db.VarChar(160)
+  contactName           String                    @db.VarChar(120)
+  contactPhone          String                    @db.VarChar(40)
+  contactEmail          String                    @db.VarChar(160)
+  businessLicenseNumber String                    @db.VarChar(100)
+  qualificationFileIds  Json
+  agreementAccepted     Boolean                   @default(false)
+  reviewComment         String?                   @db.VarChar(1000)
+  submittedAt           DateTime?
+  reviewedAt            DateTime?
+  applicant             User                      @relation("MerchantApplicant", fields: [applicantId], references: [id], onDelete: Restrict)
+  reviewer              User?                     @relation("MerchantReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
+  timeline              MerchantApplicationTimeline[]
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  @@index([applicantId, createdAt])
+  @@index([status, submittedAt])
+}
+
+model MerchantApplicationTimeline {
+  id            String                    @id @default(cuid())
+  applicationId String
+  actorId       String
+  fromStatus    MerchantApplicationStatus?
+  toStatus      MerchantApplicationStatus
+  comment       String?                   @db.VarChar(1000)
+  application   MerchantApplication       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  actor         User                      @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  createdAt     DateTime                  @default(now())
+
+  @@index([applicationId, createdAt])
 }
 
 model Store {
