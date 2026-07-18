@@ -4,6 +4,7 @@ import { ConfigService } from "@nestjs/config";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import type { AppEnvironment } from "../config/environment";
+import { AuthorizationGuard } from "./authorization";
 
 @Module({
   imports: [JwtModule.registerAsync({
@@ -14,7 +15,7 @@ import type { AppEnvironment } from "../config/environment";
     })
   })],
   controllers: [AuthController],
-  providers: [AuthService],
-  exports: [AuthService]
+  providers: [AuthService, AuthorizationGuard],
+  exports: [AuthService, AuthorizationGuard, JwtModule]
 })
 export class AuthModule {}
