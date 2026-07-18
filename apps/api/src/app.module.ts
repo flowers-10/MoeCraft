@@ -9,6 +9,8 @@ import { ThrottlerGuard } from "@nestjs/throttler";
 import { APP_GUARD } from "@nestjs/core";
 import { AuthModule } from "./auth/auth.module";
 import { AuthorizationGuard } from "./auth/authorization";
+import { AuditModule } from "./audit/audit.module";
+import { FilesModule } from "./files/files.module";
 
 @Module({
   imports: [
@@ -19,7 +21,9 @@ import { AuthorizationGuard } from "./auth/authorization";
     }),
     PrismaModule,
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
-    AuthModule
+    AuthModule,
+    AuditModule,
+    FilesModule
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }, { provide: APP_GUARD, useClass: AuthorizationGuard }]

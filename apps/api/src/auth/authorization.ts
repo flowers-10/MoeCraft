@@ -1,13 +1,15 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable, SetMetadata, UnauthorizedException } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
-import { PERMISSIONS, type Permission, type UserRole } from "@moecraft/shared";
+import type { Permission, UserRole } from "@moecraft/shared";
+
+const P = { catalogRead:"catalog:read",productRead:"product:read",productManage:"product:manage",inventoryRead:"inventory:read",orderRead:"order:read",merchantRead:"merchant:read",merchantReview:"merchant:review",catalogManage:"catalog:manage",productReview:"product:review",auditRead:"audit:read" } as const satisfies Record<string, Permission>;
 
 const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
-  CUSTOMER: [], MERCHANT_OWNER: Object.values(PERMISSIONS).filter((permission) => !permission.startsWith("system:") && !permission.endsWith(":review")),
-  MERCHANT_STAFF: [PERMISSIONS.catalogRead, PERMISSIONS.productRead, PERMISSIONS.productManage, PERMISSIONS.inventoryRead, PERMISSIONS.orderRead],
-  PLATFORM_OPERATOR: [PERMISSIONS.merchantRead, PERMISSIONS.merchantReview, PERMISSIONS.catalogRead, PERMISSIONS.catalogManage, PERMISSIONS.productRead, PERMISSIONS.productReview, PERMISSIONS.orderRead, PERMISSIONS.auditRead],
-  PLATFORM_ADMIN: Object.values(PERMISSIONS)
+  CUSTOMER: [], MERCHANT_OWNER: [P.catalogRead,P.productRead,P.productManage,P.inventoryRead,P.orderRead],
+  MERCHANT_STAFF: [P.catalogRead,P.productRead,P.productManage,P.inventoryRead,P.orderRead],
+  PLATFORM_OPERATOR: [P.merchantRead,P.merchantReview,P.catalogRead,P.catalogManage,P.productRead,P.productReview,P.orderRead,P.auditRead],
+  PLATFORM_ADMIN: ["merchant:read","merchant:manage","merchant:review","staff:manage","catalog:read","catalog:manage","product:read","product:manage","product:review","inventory:read","inventory:adjust","order:read","order:manage","payment:read","refund:manage","settlement:read","settlement:manage","content:manage","audit:read","system:manage"]
 };
 
 export const RequirePermissions = (...permissions: Permission[]) => SetMetadata("permissions", permissions);

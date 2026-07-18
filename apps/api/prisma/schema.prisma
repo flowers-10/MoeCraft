@@ -23,6 +23,28 @@ enum ProductStatus {
   ARCHIVED
 }
 
+enum FileStatus {
+  PENDING
+  READY
+  QUARANTINED
+  DELETED
+}
+
+model FileAsset {
+  id          String     @id @default(cuid())
+  ownerId     String
+  purpose     String     @db.VarChar(80)
+  objectKey   String     @unique @db.VarChar(255)
+  fileName    String     @db.VarChar(255)
+  mimeType    String     @db.VarChar(120)
+  sizeBytes   Int
+  status      FileStatus @default(PENDING)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([ownerId, purpose, status])
+}
+
 model User {
   id           String     @id @default(cuid())
   username     String     @unique @db.VarChar(80)
