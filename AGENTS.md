@@ -41,7 +41,15 @@ pnpm --filter @moecraft/api dev
 ### 后台（`apps/admin`）
 
 - 使用 Vue 3 Composition API 与 `<script setup lang="ts">`。
-- `App.vue` 只处理页面组合和页面级状态；可复用 UI 拆分至 `src/components`。
+- `App.vue` 只承载应用壳、会话恢复和顶层 `RouterView`，不得通过字符串状态或大量 `v-if` 充当路由器。
+- 后台必须使用 Vue Router；业务域使用多级嵌套路由。路由按模块拆入 `src/router/routes/*.routes.ts`，守卫独立维护，禁止在单个 `router.ts` 中持续堆叠所有页面。
+- `src/views` 按业务域和资源组织，而不是按单个功能平铺，例如 `views/merchant/store`、`views/merchant/team`、`views/platform/merchant-applications`。每个业务域应提供模块 Layout，并通过子级 `RouterView` 承载未来的三到四个页面。
+- `*View.vue` 是路由页面边界：负责读取路由参数、组织页面区块、调用模块 composable，并设置页面级权限/标题；不要把完整页面伪装成 `components`。
+- 页面专属且不可复用的展示块放在该页面的 `components`；同一业务域内两个及以上页面复用的组件提升至该业务域的 `components`；跨业务域复用的组件才允许进入 `src/components`。
+- `src/components/layout` 只放应用壳、侧边栏、顶栏等全局布局；通用 Vue UI 原子组件统一放入 `packages/ui`，不要在业务目录重复实现 Button、Card、Input、Table、List、EmptyState 等基础组件。
+- `packages/shared` 保持框架无关，只存放领域类型、DTO、枚举与常量；Vue SFC 不得放入 `packages/shared`。跨 admin/storefront 的 Vue 组件放入 `packages/ui`。
+- 路由 `meta` 应明确声明角色、导航标题和业务域；侧边栏由路由定义或统一导航配置派生，页面组件不得自行复制权限判断。
+- 新业务模块至少按 `模块 Layout → 资源 View → 页面/模块 components → composables/services` 预留演进边界；只有一个页面时也不得破坏未来嵌套路由结构。
 - 桌面布局必须同时实现响应式行为，并优先匹配现有后台视觉风格。
 - Props、emits 和复杂数据结构必须显式类型化。仅在跨页面共享时才引入全局状态。
 

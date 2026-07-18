@@ -50,3 +50,8 @@ export type MerchantApplicationView = MerchantApplicationProfile & {
   merchantStatus: "ACTIVE" | "SUSPENDED" | "CLOSED" | null;
   timeline: MerchantApplicationTimelineItem[];
 };
+
+export type StoreReturnAddress = { recipient: string; phone: string; country: string; province: string; city: string; district: string; addressLine: string; postalCode?: string };
+export type StoreProfileView = { id: string; merchantId: string; name: string; slug: string; logoFileId: string | null; bannerFileId: string | null; description: string | null; customerServiceEmail: string | null; customerServicePhone: string | null; returnAddress: StoreReturnAddress | null; isOpen: boolean; merchantStatus: "ACTIVE" | "SUSPENDED" | "CLOSED"; updatedAt: string };
+export type MerchantMemberView = { id: string; userId: string; username: string; displayName: string; role: "OWNER" | "STAFF"; createdAt: string };
+export type StaffInvitationView = { id: string; merchantId: string; merchantName: string; inviteeId: string; inviteeName: string; role: "OWNER" | "STAFF"; status: "PENDING" | "ACCEPTED" | "CANCELLED"; expiresAt: string };

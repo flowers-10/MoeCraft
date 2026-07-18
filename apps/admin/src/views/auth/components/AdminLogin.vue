@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { API_BASE_URL } from "../config";
-import { useLocale } from "../i18n";
+import { API_BASE_URL } from "../../../config";
+import { useLocale } from "../../../i18n";
 const emit = defineEmits<{ authenticated: [token: string] }>();
 const account = ref(""); const password = ref(""); const error = ref(""); const pending = ref(false);
 const { locale, t, toggleLocale } = useLocale();

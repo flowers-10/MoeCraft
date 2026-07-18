@@ -1,0 +1,3 @@
+import type { RouteRecordRaw } from "vue-router";
+const placeholder=()=>import("../../views/common/PlaceholderView.vue");
+export const commerceRoutes:RouteRecordRaw[]=[{path:"/commerce",component:()=>import("../../views/commerce/CommerceLayout.vue"),meta:{domain:"commerce"},children:[{path:"products",name:"products",component:placeholder,meta:{titleKey:"nav.products"}},{path:"inventory",name:"inventory",component:placeholder,meta:{titleKey:"nav.inventory"}},{path:"orders",name:"orders",component:()=>import("../../views/commerce/orders/OrdersView.vue"),meta:{titleKey:"nav.orders"}},{path:"after-sales",name:"afterSales",component:placeholder,meta:{titleKey:"nav.afterSales"}},{path:"reports",name:"reports",component:placeholder,meta:{titleKey:"nav.reports"}}]}];

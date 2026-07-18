@@ -9,11 +9,14 @@
   },
   "dependencies": {
     "@moecraft/shared": "workspace:*",
-    "vue": "^3.5.18"
+    "@moecraft/ui": "workspace:*",
+    "vue": "^3.5.18",
+    "vue-router": "4.6.4"
   },
   "devDependencies": {
     "@types/node": "^24.0.13",
     "@vitejs/plugin-vue": "^5.1.4",
+    "less": "^4.6.7",
     "typescript": "^5.8.3",
     "vite": "^5.4.8",
     "vue-tsc": "^2.2.12"

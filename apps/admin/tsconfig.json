@@ -4,7 +4,8 @@
     "types": ["node", "vite/client"],
     "jsx": "preserve",
     "paths": {
-      "@moecraft/shared": ["packages/shared/src/index.ts"]
+      "@moecraft/shared": ["packages/shared/src/index.ts"],
+      "@moecraft/ui": ["packages/ui/src/index.ts"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.vue", "vite.config.ts", "env.d.ts"]

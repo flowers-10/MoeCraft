@@ -1,0 +1,2 @@
+import type { Router } from "vue-router";
+export function installGuards(router:Router){router.beforeEach((to)=>{const authenticated=Boolean(sessionStorage.getItem("mc-admin-token"));if(!authenticated&&!to.meta.public)return{name:"login",query:{redirect:to.fullPath}};if(authenticated&&to.name==="login")return{name:"overview"};const roles=JSON.parse(sessionStorage.getItem("mc-admin-roles")??"[]") as string[];if(to.meta.roles?.length&&roles.length&&!to.meta.roles.some(role=>roles.includes(role)))return{name:"overview"};});}

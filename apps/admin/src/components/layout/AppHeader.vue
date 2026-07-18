@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from "vue";
-import type { MessageKey, Locale } from "../i18n";
-import { useLocale } from "../i18n";
+import type { MessageKey, Locale } from "../../i18n";
+import { useLocale } from "../../i18n";
 import type { UserRole } from "@moecraft/shared";
 
 const props = defineProps<{ activePage: string; theme: "system" | "light" | "dark"; user: { displayName: string; username: string; roles: UserRole[] } | null }>();

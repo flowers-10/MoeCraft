@@ -75,7 +75,7 @@ export class MerchantOnboardingService {
       if (target === "APPROVED") {
         const existing = await tx.merchant.findUnique({ where: { ownerId: application.applicantId } });
         if (existing) throw new ConflictException("MERCHANT_ALREADY_APPROVED");
-        await tx.merchant.create({ data: { ownerId: application.applicantId, name: application.companyName } });
+        await tx.merchant.create({ data: { ownerId: application.applicantId, name: application.companyName, members: { create: { userId: application.applicantId, role: "OWNER" } } } });
         await tx.userRole.upsert({
           where: { userId_role: { userId: application.applicantId, role: "MERCHANT_OWNER" } },
           update: {}, create: { userId: application.applicantId, role: "MERCHANT_OWNER" }

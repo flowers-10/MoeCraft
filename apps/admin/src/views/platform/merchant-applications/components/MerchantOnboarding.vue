@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import type { MerchantApplicationStatus, MerchantApplicationView, UserRole } from "@moecraft/shared";
-import { apiRequest } from "../api";
-import type { MessageKey } from "../i18n";
-import { useLocale } from "../i18n";
+import { apiRequest } from "../../../../api";
+import type { MessageKey } from "../../../../i18n";
+import { useLocale } from "../../../../i18n";
 
 const props = defineProps<{ roles: UserRole[] }>();
 const reviewer = computed(() => props.roles.some((role) => role.startsWith("PLATFORM_")));

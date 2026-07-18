@@ -1,0 +1,3 @@
+<script setup lang="ts">defineOptions({inheritAttrs:false});defineProps<{modelValue?:string|number}>();defineEmits<{"update:modelValue":[value:string]}>();</script>
+<template><select v-bind="$attrs" class="mc-control" :value="modelValue" @change="$emit('update:modelValue',($event.target as HTMLSelectElement).value)"><slot/></select></template>
+<style scoped>.mc-control{width:100%;min-height:39px;padding:9px 32px 9px 11px;border:1px solid var(--border,#dce1eb);border-radius:8px;background:var(--surface-raised,#f5f7fb);color:var(--text,#202436);font:inherit;outline:0}.mc-control:focus{border-color:var(--accent,#4255d4)}</style>

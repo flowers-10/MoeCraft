@@ -1,0 +1,2 @@
+import type { RouteRecordRaw } from "vue-router";
+export const merchantRoutes:RouteRecordRaw[]=[{path:"/merchant",component:()=>import("../../views/merchant/MerchantLayout.vue"),meta:{domain:"merchant",roles:["MERCHANT_OWNER","MERCHANT_STAFF"]},children:[{path:"store",name:"settings",component:()=>import("../../views/merchant/store/StoreProfileView.vue"),meta:{titleKey:"nav.settings"}},{path:"team",name:"members",component:()=>import("../../views/merchant/team/MerchantTeamView.vue"),meta:{titleKey:"nav.members"}}]}];

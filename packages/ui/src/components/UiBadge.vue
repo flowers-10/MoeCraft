@@ -1,0 +1,3 @@
+<script setup lang="ts">withDefaults(defineProps<{tone?:"neutral"|"accent"|"success"|"warning"|"danger"}>(),{tone:"neutral"});</script>
+<template><span class="badge" :class="`is-${tone}`"><slot/></span></template>
+<style scoped>.badge{display:inline-flex;align-items:center;width:max-content;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:650}.is-neutral{background:var(--surface-raised,#f5f7fb);color:var(--text-secondary,#596174)}.is-accent{background:var(--accent-soft,#e3e7ff);color:var(--accent,#4255d4)}.is-success{background:var(--success-soft,#dff3ec);color:var(--success,#158269)}.is-warning{background:#fff2d6;color:var(--warning,#ad7419)}.is-danger{background:var(--danger-soft,#f9e1e8);color:var(--danger,#c13f5c)}</style>

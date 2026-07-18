@@ -1,0 +1,4 @@
+import {createRouter,createWebHistory,type RouteRecordRaw}from"vue-router";
+import{installGuards}from"./guards";import{authRoutes}from"./routes/auth.routes";import{commerceRoutes}from"./routes/commerce.routes";import{merchantRoutes}from"./routes/merchant.routes";import{platformRoutes}from"./routes/platform.routes";import{systemRoutes}from"./routes/system.routes";
+const legacy:RouteRecordRaw[]=[{path:"/",redirect:"/system/overview"},{path:"/overview",redirect:"/system/overview"},{path:"/onboarding",redirect:"/platform/merchant-applications"},{path:"/orders",redirect:"/commerce/orders"},{path:"/members",redirect:"/merchant/team"},{path:"/settings",redirect:"/merchant/store"}];
+export const router=createRouter({history:createWebHistory(),routes:[...authRoutes,...systemRoutes,...platformRoutes,...merchantRoutes,...commerceRoutes,...legacy,{path:"/:pathMatch(.*)*",redirect:"/system/overview"}]});installGuards(router);

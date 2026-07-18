@@ -8,6 +8,7 @@
     "typecheck": "nuxt typecheck"
   },
   "dependencies": {
+    "@moecraft/shared": "workspace:*",
     "nuxt": "3.17.5"
   },
   "devDependencies": {

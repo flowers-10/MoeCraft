@@ -39,6 +39,17 @@ enum MerchantApplicationStatus {
   WITHDRAWN
 }
 
+enum MerchantMemberRole {
+  OWNER
+  STAFF
+}
+
+enum StaffInvitationStatus {
+  PENDING
+  ACCEPTED
+  CANCELLED
+}
+
 model FileAsset {
   id          String     @id @default(cuid())
   ownerId     String
@@ -67,6 +78,9 @@ model User {
   reviewedMerchantApplications MerchantApplication[] @relation("MerchantReviewer")
   applicationTimeline MerchantApplicationTimeline[]
   ownedMerchant Merchant? @relation("MerchantOwner")
+  merchantMemberships MerchantMember[]
+  receivedStaffInvitations StaffInvitation[] @relation("StaffInvitee")
+  sentStaffInvitations StaffInvitation[] @relation("StaffInviter")
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 }
@@ -131,8 +145,42 @@ model Merchant {
   status    MerchantStatus @default(ACTIVE)
   store     Store?
   owner     User?          @relation("MerchantOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  members   MerchantMember[]
+  staffInvitations StaffInvitation[]
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
+}
+
+model MerchantMember {
+  id         String             @id @default(cuid())
+  merchantId String
+  userId     String
+  role       MerchantMemberRole @default(STAFF)
+  merchant   Merchant           @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  user       User               @relation(fields: [userId], references: [id], onDelete: Restrict)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  @@unique([merchantId, userId])
+  @@index([userId])
+}
+
+model StaffInvitation {
+  id         String                @id @default(cuid())
+  merchantId String
+  inviteeId  String
+  invitedById String
+  role       MerchantMemberRole    @default(STAFF)
+  status     StaffInvitationStatus @default(PENDING)
+  expiresAt  DateTime
+  merchant   Merchant              @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  invitee    User                  @relation("StaffInvitee", fields: [inviteeId], references: [id], onDelete: Cascade)
+  invitedBy  User                  @relation("StaffInviter", fields: [invitedById], references: [id], onDelete: Restrict)
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+
+  @@index([inviteeId, status, expiresAt])
+  @@index([merchantId, status])
 }
 
 model MerchantApplication {
@@ -180,6 +228,12 @@ model Store {
   name       String    @db.VarChar(160)
   slug       String    @unique @db.VarChar(120)
   isOpen     Boolean   @default(true)
+  logoFileId String?
+  bannerFileId String?
+  description String?  @db.Text
+  customerServiceEmail String? @db.VarChar(160)
+  customerServicePhone String? @db.VarChar(40)
+  returnAddress Json?
   merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Restrict)
   products   Product[]
   createdAt  DateTime  @default(now())
