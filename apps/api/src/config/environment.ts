@@ -1,5 +1,5 @@
-const DEFAULT_PORT = 3002;
-const DEFAULT_CORS_ORIGINS = ["http://localhost:3000", "http://localhost:3001"];
+const DEFAULT_PORT = 3102;
+const DEFAULT_CORS_ORIGINS = ["http://localhost:3100", "http://localhost:3101"];
 
 export type AppEnvironment = {
   DATABASE_URL: string;

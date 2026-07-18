@@ -4,9 +4,9 @@
 
 MoeCraft 是一个面向同人手办与周边商城的 `pnpm` + Turborepo Monorepo。
 
-- `apps/storefront`：Nuxt 3 商城前台（`@moecraft/storefront`，端口 `3000`）
-- `apps/admin`：Vue 3 + Vite 运营后台（`@moecraft/admin`，端口 `3001`）
-- `apps/api`：NestJS API（`@moecraft/api`，端口 `3002`）
+- `apps/storefront`：Nuxt 3 商城前台（`@moecraft/storefront`，端口 `3100`）
+- `apps/admin`：Vue 3 + Vite 运营后台（`@moecraft/admin`，端口 `3101`）
+- `apps/api`：NestJS API（`@moecraft/api`，端口 `3102`）
 - `packages/shared`：共享 TypeScript 类型与常量（`@moecraft/shared`）
 
 使用 Node.js 20+ 与 `pnpm` 10+。

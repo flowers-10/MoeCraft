@@ -6,8 +6,8 @@
       当前是 Monorepo 的基础首页，后续会逐步补商品列表、详情页、预售流程、购物车和订单系统。
     </p>
     <div class="links">
-      <a href="http://localhost:3001" target="_blank">管理后台</a>
-      <a href="http://localhost:3002/health" target="_blank">后端健康检查</a>
+      <a href="http://localhost:3101" target="_blank">管理后台</a>
+      <a href="http://localhost:3102/health" target="_blank">后端健康检查</a>
     </div>
   </main>
 </template>

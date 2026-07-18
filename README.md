@@ -6,9 +6,9 @@
 
 | 包 | 技术栈 | 本地地址 | 职责 |
 |---|---|---|---|
-| `@moecraft/storefront` | Nuxt 3 | <http://localhost:3000> | 消费者商城前台 |
-| `@moecraft/admin` | Vue 3 + Vite | <http://localhost:3001> | 商家与平台运营后台 |
-| `@moecraft/api` | NestJS | <http://localhost:3002> | 业务 API 与健康检查 |
+| `@moecraft/storefront` | Nuxt 3 | <http://localhost:3100> | 消费者商城前台 |
+| `@moecraft/admin` | Vue 3 + Vite | <http://localhost:3101> | 商家与平台运营后台 |
+| `@moecraft/api` | NestJS | <http://localhost:3102> | 业务 API 与健康检查 |
 | `@moecraft/shared` | TypeScript | - | 跨端类型、常量与契约 |
 
 ## 环境要求
@@ -29,7 +29,7 @@ pnpm dev
 三个应用会并行启动。API 健康检查：
 
 ```text
-GET http://localhost:3002/health
+GET http://localhost:3102/health
 ```
 
 预期返回 `status: "ok"` 和当前 ISO 时间。健康检查不依赖数据库等重量级外部服务。
