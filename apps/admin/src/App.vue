@@ -6,7 +6,9 @@ import FigureActivity from "./components/FigureActivity.vue";
 import FigureCalendar from "./components/FigureCalendar.vue";
 import FigureOffer from "./components/FigureOffer.vue";
 import OrderBoard from "./components/OrderBoard.vue";
+import AdminLogin from "./components/AdminLogin.vue";
 
+const adminToken = ref(sessionStorage.getItem("mc-admin-token"));
 const activePage = ref("orders");
 const theme = ref<"system" | "light" | "dark">("system");
 const themeAttribute = computed(() => (theme.value === "system" ? undefined : theme.value));
@@ -17,7 +19,8 @@ function cycleTheme() {
 </script>
 
 <template>
-  <div class="wrapper" :data-theme="themeAttribute">
+  <AdminLogin v-if="!adminToken" @authenticated="adminToken = $event" />
+  <div v-else class="wrapper" :data-theme="themeAttribute">
     <AppSidebar :active-page="activePage" @select="activePage = $event" />
     <main class="main-container">
       <AppHeader :active-page="activePage" :theme="theme" @select="activePage = $event" @toggle-theme="cycleTheme" />
