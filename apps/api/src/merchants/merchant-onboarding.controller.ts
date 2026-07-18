@@ -4,8 +4,8 @@ import { RequirePermissions, RequireRoles, type RequestPrincipal } from "../auth
 import { ReviewMerchantApplicationDto, SaveMerchantApplicationDto, SetMerchantStatusDto } from "./merchant-onboarding.dto";
 import { MerchantOnboardingService } from "./merchant-onboarding.service";
 
-const APPLICANT_ROLES: UserRole[] = ["CUSTOMER", "MERCHANT_OWNER", "MERCHANT_STAFF"];
-const APPLICATION_STATUSES: MerchantApplicationStatus[] = ["DRAFT", "SUBMITTED", "NEEDS_CHANGES", "APPROVED", "REJECTED", "WITHDRAWN"];
+const APPLICANT_ROLES: UserRole[] = ["CUSTOMER", "MERCHANT_OWNER"];
+const REVIEW_QUEUE_STATUSES: MerchantApplicationStatus[] = ["SUBMITTED", "NEEDS_CHANGES", "APPROVED", "REJECTED"];
 
 @Controller("merchant-applications")
 export class MerchantOnboardingController {
@@ -25,7 +25,7 @@ export class MerchantOnboardingController {
 
   @Get() @RequirePermissions("merchant:review")
   queue(@Query("status") rawStatus?: string) {
-    const status = APPLICATION_STATUSES.find((item) => item === rawStatus);
+    const status = REVIEW_QUEUE_STATUSES.find((item) => item === rawStatus);
     return this.onboarding.queue(status);
   }
 

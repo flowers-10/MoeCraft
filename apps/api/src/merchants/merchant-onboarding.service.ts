@@ -9,6 +9,7 @@ const TRANSITIONS: Record<MerchantApplicationStatus, readonly MerchantApplicatio
   NEEDS_CHANGES: ["SUBMITTED", "WITHDRAWN"], APPROVED: [], REJECTED: [], WITHDRAWN: []
 };
 const canTransition = (from: MerchantApplicationStatus, to: MerchantApplicationStatus) => TRANSITIONS[from].includes(to);
+const REVIEW_QUEUE_STATUSES: MerchantApplicationStatus[] = ["SUBMITTED", "NEEDS_CHANGES", "APPROVED", "REJECTED"];
 
 @Injectable()
 export class MerchantOnboardingService {
@@ -56,7 +57,7 @@ export class MerchantOnboardingService {
 
   async queue(status?: MerchantApplicationStatus): Promise<MerchantApplicationView[]> {
     const applications = await this.prisma.merchantApplication.findMany({
-      where: status ? { status } : undefined,
+      where: { status: status && REVIEW_QUEUE_STATUSES.includes(status) ? status : { in: REVIEW_QUEUE_STATUSES } },
       orderBy: [{ submittedAt: "asc" }, { createdAt: "asc" }], include: { timeline: { orderBy: { createdAt: "asc" } } }
     });
     const merchants = await this.prisma.merchant.findMany({ where: { ownerId: { in: applications.map((item) => item.applicantId) } } });
