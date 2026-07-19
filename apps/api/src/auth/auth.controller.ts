@@ -18,6 +18,7 @@ export class AuthController {
 
   @Post("logout") logout(@Body() dto: LogoutDto) { return this.auth.logout(dto.refreshToken); }
   @Get("me") me(@Headers("authorization") authorization?: string) { return this.auth.me(authorization); }
+  @Get("access-profile") accessProfile(@Headers("authorization") authorization?: string) { return this.auth.accessProfile(authorization); }
 
   @Post("forgot-password") @Throttle({ default: { limit: 5, ttl: 60_000 } })
   forgot(@Body() dto: ForgotPasswordDto) { return this.auth.forgotPassword(dto.account); }

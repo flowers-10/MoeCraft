@@ -156,6 +156,8 @@ model MerchantMember {
   merchantId String
   userId     String
   role       MerchantMemberRole @default(STAFF)
+  routePermissions Json?
+  buttonPermissions Json?
   merchant   Merchant           @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   user       User               @relation(fields: [userId], references: [id], onDelete: Restrict)
   createdAt  DateTime           @default(now())

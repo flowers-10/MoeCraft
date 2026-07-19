@@ -1,7 +1,7 @@
 ﻿<script setup lang="ts">
-import type { UserRole } from "@moecraft/shared";
+import type { AdminButtonPermission, UserRole } from "@moecraft/shared";
 import StoreManagement from "../components/StoreManagement.vue";
-defineProps<{ roles: UserRole[] }>();
+defineProps<{ roles: UserRole[]; buttonPermissions: AdminButtonPermission[] }>();
 </script>
-<template><StoreManagement :roles="roles" section="store" /></template>
+<template><StoreManagement :roles="roles" :button-permissions="buttonPermissions" section="store" /></template>
 

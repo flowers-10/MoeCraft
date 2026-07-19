@@ -32,8 +32,10 @@ const rolePriority: UserRole[] = ["PLATFORM_ADMIN", "PLATFORM_OPERATOR", "MERCHA
 const primaryRole = computed(() => rolePriority.find((item) => props.user?.roles.includes(item)) ?? "CUSTOMER");
 const role = computed(() => t(roleKeys[primaryRole.value]));
 const initials = computed(() => (props.user?.displayName || props.user?.username || "M").slice(0, 1).toUpperCase());
+const routePermissions = computed(() => JSON.parse(sessionStorage.getItem("mc-admin-route-permissions") ?? "[]") as string[]);
 const isOwner = computed(() => props.user?.roles.includes("MERCHANT_OWNER") ?? false);
-const isMerchant = computed(() => props.user?.roles.some((item) => item === "MERCHANT_OWNER" || item === "MERCHANT_STAFF") ?? false);
+const showOnboarding = computed(() => props.activePage !== "onboarding" && isOwner.value);
+const showStore = computed(() => props.activePage !== "settings" && routePermissions.value.includes("merchant.store"));
 </script>
 
 <template>
@@ -50,8 +52,8 @@ const isMerchant = computed(() => props.user?.roles.some((item) => item === "MER
         </button>
         <div class="profile-popover">
           <div class="account-summary"><span class="avatar small">{{ initials }}</span><div><b>{{ user?.displayName || user?.username }}</b><small>@{{ user?.username }}</small></div></div>
-          <button v-if="isOwner" type="button" @click="$emit('navigate', 'onboarding')"><span>◇</span><div><b>{{ t('header.onboardingRecord') }}</b><small>{{ t('header.onboardingRecordHint') }}</small></div></button>
-          <button v-if="isMerchant" type="button" @click="$emit('navigate', 'settings')"><span>⌂</span><div><b>{{ t('header.storeProfile') }}</b><small>{{ t('header.storeProfileHint') }}</small></div></button>
+          <button v-if="showOnboarding" type="button" @click="$emit('navigate', 'onboarding')"><span>◇</span><div><b>{{ t('header.onboardingRecord') }}</b><small>{{ t('header.onboardingRecordHint') }}</small></div></button>
+          <button v-if="showStore" type="button" @click="$emit('navigate', 'settings')"><span>⌂</span><div><b>{{ t('header.storeProfile') }}</b><small>{{ t('header.storeProfileHint') }}</small></div></button>
           <button class="logout-entry" type="button" @click="$emit('logout')"><span>→</span><div><b>{{ t('header.logout') }}</b></div></button>
         </div>
       </div>

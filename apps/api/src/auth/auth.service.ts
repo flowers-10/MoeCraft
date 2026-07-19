@@ -4,6 +4,9 @@ import { createHash, randomBytes } from "node:crypto";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../prisma/prisma.service";
 import type { LoginDto, RegisterDto } from "./auth.dto";
+import type { AccessProfile } from "@moecraft/shared";
+import { Prisma } from "@prisma/client";
+import { ADMIN_BUTTON_KEYS, ADMIN_ROUTE_KEYS } from "./admin-access";
 
 const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const RESET_TTL_MS = 30 * 60 * 1000;
@@ -69,6 +72,16 @@ export class AuthService {
     return this.publicUser(user);
   }
 
+  async accessProfile(authorization?: string): Promise<AccessProfile> {
+    const user = await this.currentUser(authorization);
+    const roles = user.roles.map(({ role }) => role);
+    if (roles.includes("PLATFORM_ADMIN") || roles.includes("PLATFORM_OPERATOR")) return { routePermissions: [...ADMIN_ROUTE_KEYS], buttonPermissions: [...ADMIN_BUTTON_KEYS] };
+    const membership = user.merchantMemberships[0];
+    if (membership?.role === "OWNER") return { routePermissions: [...ADMIN_ROUTE_KEYS], buttonPermissions: [...ADMIN_BUTTON_KEYS] };
+    if (membership?.role === "STAFF") return { routePermissions: this.accessList(membership.routePermissions, ADMIN_ROUTE_KEYS), buttonPermissions: this.accessList(membership.buttonPermissions, ADMIN_BUTTON_KEYS) };
+    return { routePermissions: ["system.overview", "platform.onboarding"], buttonPermissions: [] };
+  }
+
   async forgotPassword(account: string) {
     const user = await this.prisma.user.findUnique({ where: { username: account } });
     if (user?.isActive) {
@@ -103,6 +116,15 @@ export class AuthService {
   private publicUser(user: { id: string; username: string; displayName: string; roles: { role: string }[] }): PublicUser {
     return { id: user.id, username: user.username, displayName: user.displayName, roles: user.roles.map(({ role }) => role) };
   }
+  private async currentUser(authorization?: string) {
+    const token = authorization?.replace(/^Bearer\s+/i, "");
+    if (!token) throw new UnauthorizedException("AUTHENTICATION_REQUIRED");
+    const payload = await this.jwt.verifyAsync<{ sub: string }>(token).catch(() => { throw new UnauthorizedException("AUTHENTICATION_REQUIRED"); });
+    const user = await this.prisma.user.findUnique({ where: { id: payload.sub }, include: { roles: true, merchantMemberships: { take: 1 } } });
+    if (!user?.isActive) throw new UnauthorizedException("AUTHENTICATION_REQUIRED");
+    return user;
+  }
+  private accessList<T extends string>(value: Prisma.JsonValue | null, allowed: readonly T[]): T[] { return Array.isArray(value) ? value.filter((item): item is T => typeof item === "string" && allowed.includes(item as T)) : []; }
   private async audit(action: string, actorId?: string, ipAddress?: string) {
     await this.prisma.auditLog.create({ data: { action, actorId, ipAddress } });
   }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { RouterView, useRoute, useRouter } from "vue-router";
-import type { UserRole } from "@moecraft/shared";
+import type { AccessProfile, AdminRoutePermission, UserRole } from "@moecraft/shared";
 import AppHeader from "./components/layout/AppHeader.vue";
 import AppSidebar from "./components/layout/AppSidebar.vue";
 import { apiRequest } from "./api";
@@ -10,31 +10,37 @@ import { useLocale } from "./i18n";
 type CurrentUser = { id: string; username: string; displayName: string; roles: UserRole[] };
 const adminToken = ref(sessionStorage.getItem("mc-admin-token"));
 const currentUser = ref<CurrentUser | null>(null);
+const accessProfile = ref<AccessProfile | null>(null);
 const sessionInitializing = ref(true);
 const route = useRoute();
 const router = useRouter();
 const activePage = computed(() => String(route.name ?? "overview"));
 const theme = ref<"system" | "light" | "dark">((localStorage.getItem("mc-admin-theme") as "system" | "light" | "dark") || "system");
-const themeAttribute = computed(() => theme.value === "system" ? undefined : theme.value);
+function themeForLocalTime(date = new Date()): "light" | "dark" { const hour = date.getHours(); return hour >= 6 && hour < 18 ? "light" : "dark"; }
+const timedTheme = ref(themeForLocalTime());
+const themeAttribute = computed(() => theme.value === "system" ? timedTheme.value : theme.value);
+const themeTimer = window.setInterval(() => { timedTheme.value = themeForLocalTime(); }, 60_000);
 const { t, toggleLocale } = useLocale();
-function canOpen(user: CurrentUser) { const required = route.meta.roles as UserRole[] | undefined; return !required?.length || required.some((role) => user.roles.includes(role)); }
-async function loadUser() { if (!adminToken.value) return false; try { const user = await apiRequest<CurrentUser>("/auth/me"); sessionStorage.setItem("mc-admin-roles", JSON.stringify(user.roles)); currentUser.value = user; if (!canOpen(user)) await router.replace(user.roles.some((role) => role.startsWith("MERCHANT_")) ? "/merchant/store" : "/system/overview"); return true; } catch { signOut(); return false; } }
+function fallbackPath(permissions: AdminRoutePermission[]) { const candidates: Array<[AdminRoutePermission,string]>=[["merchant.store","/merchant/store"],["merchant.team","/merchant/team"],["system.overview","/system/overview"],["platform.onboarding","/platform/merchant-applications"],["commerce.products","/commerce/products"],["commerce.orders","/commerce/orders"]];return candidates.find(([key])=>permissions.includes(key))?.[1]??"/login"; }
+function canOpen(user: CurrentUser, access: AccessProfile) { const required = route.meta.roles as UserRole[] | undefined; const key=route.meta.accessKey as AdminRoutePermission|undefined;return(!required?.length||required.some((role)=>user.roles.includes(role)))&&(!key||access.routePermissions.includes(key)); }
+async function loadUser() { if (!adminToken.value) return false; try { const [user,access]=await Promise.all([apiRequest<CurrentUser>("/auth/me"),apiRequest<AccessProfile>("/auth/access-profile")]);sessionStorage.setItem("mc-admin-roles",JSON.stringify(user.roles));sessionStorage.setItem("mc-admin-route-permissions",JSON.stringify(access.routePermissions));sessionStorage.setItem("mc-admin-button-permissions",JSON.stringify(access.buttonPermissions));accessProfile.value=access;currentUser.value=user;if(!canOpen(user,access))await router.replace(fallbackPath(access.routePermissions));return true;}catch{signOut();return false;} }
 async function initializeSession() { sessionInitializing.value = true; try { await loadUser(); } finally { sessionInitializing.value = false; } }
-async function authenticated(token: string) { sessionInitializing.value = true; sessionStorage.removeItem("mc-admin-roles"); adminToken.value = token; try { const loaded = await loadUser(); if (loaded) await router.replace(typeof route.query.redirect === "string" ? route.query.redirect : "/system/overview"); } finally { sessionInitializing.value = false; } }
+async function authenticated(token: string) { sessionInitializing.value = true; sessionStorage.removeItem("mc-admin-roles"); sessionStorage.removeItem("mc-admin-route-permissions"); sessionStorage.removeItem("mc-admin-button-permissions"); adminToken.value = token; try { const redirect = typeof route.query.redirect === "string" ? route.query.redirect : "/system/overview"; const loaded = await loadUser(); if (loaded) await router.replace(redirect); } finally { sessionInitializing.value = false; } }
 function cycleTheme() { theme.value = theme.value === "system" ? "light" : theme.value === "light" ? "dark" : "system"; localStorage.setItem("mc-admin-theme", theme.value); }
-function signOut() { sessionStorage.removeItem("mc-admin-token"); sessionStorage.removeItem("mc-admin-refresh"); sessionStorage.removeItem("mc-admin-roles"); adminToken.value = null; currentUser.value = null; void router.replace("/login"); }
+function signOut() { sessionStorage.removeItem("mc-admin-token"); sessionStorage.removeItem("mc-admin-refresh"); sessionStorage.removeItem("mc-admin-roles");sessionStorage.removeItem("mc-admin-route-permissions");sessionStorage.removeItem("mc-admin-button-permissions"); adminToken.value = null; currentUser.value = null;accessProfile.value=null; void router.replace("/login"); }
 function navigate(page: string) { void router.push({ name: page }); }
 onMounted(initializeSession);
+onBeforeUnmount(() => window.clearInterval(themeTimer));
 </script>
 
 <template>
   <section v-if="sessionInitializing" class="app-loading" :data-theme="themeAttribute"><span /><p>{{ t('common.loading') }}</p></section>
   <RouterView v-else-if="!adminToken" v-slot="{ Component }"><component :is="Component" @authenticated="authenticated" /></RouterView>
-  <div v-else-if="currentUser" class="wrapper" :data-theme="themeAttribute">
-    <AppSidebar :active-page="activePage" :roles="currentUser?.roles ?? []" @select="navigate" />
+  <div v-else-if="currentUser&&accessProfile" class="wrapper" :data-theme="themeAttribute">
+    <AppSidebar :active-page="activePage" :roles="currentUser.roles" :route-permissions="accessProfile.routePermissions" @select="navigate" />
     <main class="main-container">
       <AppHeader :active-page="activePage" :theme="theme" :user="currentUser" @toggle-theme="cycleTheme" @toggle-locale="toggleLocale" @navigate="navigate" @logout="signOut" />
-      <RouterView v-slot="{ Component }"><component :is="Component" :roles="currentUser.roles" /></RouterView>
+      <RouterView v-slot="{ Component }"><component :is="Component" :roles="currentUser.roles" :button-permissions="accessProfile.buttonPermissions" /></RouterView>
     </main>
   </div>
 </template>

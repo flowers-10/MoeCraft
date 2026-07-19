@@ -1,5 +1,7 @@
-import { IsBoolean, IsEmail, IsIn, IsOptional, IsString, Length, Matches, ValidateNested } from "class-validator";
+import { ArrayUnique, IsArray, IsBoolean, IsEmail, IsIn, IsOptional, IsString, Length, Matches, MinLength, ValidateNested } from "class-validator";
 import { Type } from "class-transformer";
+import type { AdminButtonPermission, AdminRoutePermission } from "@moecraft/shared";
+import { ADMIN_BUTTON_KEYS, MERCHANT_STAFF_ROUTE_KEYS } from "../auth/admin-access";
 
 export class ReturnAddressDto {
   @IsString() @Length(2, 120) recipient!: string;
@@ -24,5 +26,17 @@ export class SaveStoreProfileDto {
   @IsBoolean() isOpen!: boolean;
 }
 
-export class InviteStaffDto { @IsString() @Length(3, 80) username!: string; @IsIn(["OWNER", "STAFF"]) role!: "OWNER" | "STAFF"; }
-export class UpdateMemberRoleDto { @IsIn(["OWNER", "STAFF"]) role!: "OWNER" | "STAFF"; }
+export class CreateStaffAccountDto {
+  @IsString() @Matches(/^[a-zA-Z0-9_-]+$/) @Length(3, 80) username!: string;
+  @IsString() @Length(1, 120) displayName!: string;
+  @IsString() @MinLength(12) password!: string;
+  @IsArray() @ArrayUnique() @IsIn(MERCHANT_STAFF_ROUTE_KEYS, { each: true }) routePermissions!: AdminRoutePermission[];
+  @IsArray() @ArrayUnique() @IsIn(ADMIN_BUTTON_KEYS, { each: true }) buttonPermissions!: AdminButtonPermission[];
+}
+
+export class UpdateMemberAccessDto {
+  @IsArray() @ArrayUnique() @IsIn(MERCHANT_STAFF_ROUTE_KEYS, { each: true }) routePermissions!: AdminRoutePermission[];
+  @IsArray() @ArrayUnique() @IsIn(ADMIN_BUTTON_KEYS, { each: true }) buttonPermissions!: AdminButtonPermission[];
+}
+
+export class SetMemberStatusDto { @IsBoolean() isActive!: boolean; }
