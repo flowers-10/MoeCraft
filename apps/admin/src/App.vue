@@ -26,7 +26,7 @@ function canOpen(user: CurrentUser, access: AccessProfile) { const required = ro
 async function loadUser() { if (!adminToken.value) return false; try { const [user,access]=await Promise.all([apiRequest<CurrentUser>("/auth/me"),apiRequest<AccessProfile>("/auth/access-profile")]);sessionStorage.setItem("mc-admin-roles",JSON.stringify(user.roles));sessionStorage.setItem("mc-admin-route-permissions",JSON.stringify(access.routePermissions));sessionStorage.setItem("mc-admin-button-permissions",JSON.stringify(access.buttonPermissions));accessProfile.value=access;currentUser.value=user;if(!canOpen(user,access))await router.replace(fallbackPath(access.routePermissions));return true;}catch{signOut();return false;} }
 async function initializeSession() { sessionInitializing.value = true; try { await loadUser(); } finally { sessionInitializing.value = false; } }
 async function authenticated(token: string) { sessionInitializing.value = true; sessionStorage.removeItem("mc-admin-roles"); sessionStorage.removeItem("mc-admin-route-permissions"); sessionStorage.removeItem("mc-admin-button-permissions"); adminToken.value = token; try { const redirect = typeof route.query.redirect === "string" ? route.query.redirect : "/system/overview"; const loaded = await loadUser(); if (loaded) await router.replace(redirect); } finally { sessionInitializing.value = false; } }
-function cycleTheme() { theme.value = theme.value === "system" ? "light" : theme.value === "light" ? "dark" : "system"; localStorage.setItem("mc-admin-theme", theme.value); }
+function setTheme(value: "system" | "light" | "dark") { theme.value = value; localStorage.setItem("mc-admin-theme", value); }
 function signOut() { sessionStorage.removeItem("mc-admin-token"); sessionStorage.removeItem("mc-admin-refresh"); sessionStorage.removeItem("mc-admin-roles");sessionStorage.removeItem("mc-admin-route-permissions");sessionStorage.removeItem("mc-admin-button-permissions"); adminToken.value = null; currentUser.value = null;accessProfile.value=null; void router.replace("/login"); }
 function navigate(page: string) { void router.push({ name: page }); }
 onMounted(initializeSession);
@@ -39,7 +39,7 @@ onBeforeUnmount(() => window.clearInterval(themeTimer));
   <div v-else-if="currentUser&&accessProfile" class="wrapper" :data-theme="themeAttribute">
     <AppSidebar :active-page="activePage" :roles="currentUser.roles" :route-permissions="accessProfile.routePermissions" @select="navigate" />
     <main class="main-container">
-      <AppHeader :active-page="activePage" :theme="theme" :user="currentUser" @toggle-theme="cycleTheme" @toggle-locale="toggleLocale" @navigate="navigate" @logout="signOut" />
+      <AppHeader :active-page="activePage" :theme="theme" :user="currentUser" @set-theme="setTheme" @toggle-locale="toggleLocale" @navigate="navigate" @logout="signOut" />
       <RouterView v-slot="{ Component }"><component :is="Component" :roles="currentUser.roles" :button-permissions="accessProfile.buttonPermissions" /></RouterView>
     </main>
   </div>
