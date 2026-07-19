@@ -6,3 +6,17 @@
   background: var(--app-bg);
   font-synthesis: none;
 }
+
+.product-page .form-scroll::before {
+  display: block;
+  padding: 14px 16px;
+  margin: 12px 0 20px;
+  border: 1px solid #d8d0ff;
+  border-radius: 11px;
+  background: var(--accent-soft);
+  color: var(--text-secondary);
+  content: "草稿填写规则\A必填：中文标题；添加 SKU 后，规格名称必填；添加媒体后，文件必填。\A系统生成：商品 ID、草稿状态、创建/更新时间；SKU 编码会自动生成，也可以手动修改；币种默认 CNY、初始库存默认 0。\A提交审核时（G15）将再检查类目、描述、有效 SKU/价格和封面等上架资料。";
+  font-size: 11px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+}

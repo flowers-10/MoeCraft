@@ -347,20 +347,27 @@ model AttributeTemplate {
 model Product {
   id         String        @id @default(cuid())
   storeId    String
-  categoryId String
+  categoryId String?
   brandId    String?
   franchiseId String?
   characterId String?
   titleZhCn  String        @db.VarChar(200)
   titleEnUs  String?       @db.VarChar(200)
+  descriptionZhCn String?  @db.Text
+  descriptionEnUs String?  @db.Text
+  material   String?       @db.VarChar(160)
+  scale      String?       @db.VarChar(80)
+  manufacturer String?     @db.VarChar(160)
+  copyrightNotice String?  @db.VarChar(500)
   status     ProductStatus @default(DRAFT)
   store      Store         @relation(fields: [storeId], references: [id], onDelete: Restrict)
-  category   Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  category   Category?     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   brand      Brand?        @relation(fields: [brandId], references: [id], onDelete: Restrict)
   franchise  Franchise?    @relation(fields: [franchiseId], references: [id], onDelete: Restrict)
   character  Character?    @relation(fields: [characterId], references: [id], onDelete: Restrict)
   tags       Tag[]
   skus       Sku[]
+  media      ProductMedia[]
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
 
@@ -377,6 +384,12 @@ model Sku {
   code        String     @unique @db.VarChar(80)
   nameZhCn    String     @db.VarChar(160)
   nameEnUs    String?    @db.VarChar(160)
+  barcode     String?    @db.VarChar(80)
+  optionValues Json?
+  weightGrams Int?
+  lengthMm    Int?
+  widthMm     Int?
+  heightMm    Int?
   priceAmount Int
   currency    String     @default("CNY") @db.Char(3)
   product     Product    @relation(fields: [productId], references: [id], onDelete: Restrict)
@@ -385,6 +398,23 @@ model Sku {
   updatedAt   DateTime   @updatedAt
 
   @@index([productId])
+  @@index([barcode])
+}
+
+model ProductMedia {
+  id        String   @id @default(cuid())
+  productId String
+  fileId    String
+  kind      String   @default("IMAGE") @db.VarChar(20)
+  altZhCn   String?  @db.VarChar(200)
+  altEnUs   String?  @db.VarChar(200)
+  sortOrder Int      @default(0)
+  isCover   Boolean  @default(false)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([productId, fileId])
+  @@index([productId, sortOrder])
 }
 
 model Inventory {
