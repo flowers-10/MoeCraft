@@ -6,7 +6,10 @@ import { apiRequest } from "../../../api";
 import { useLocale } from "../../../i18n";
 
 type DialogMode = "create" | "view" | "edit" | null;
-const props = defineProps<{ roles: UserRole[]; buttonPermissions: AdminButtonPermission[]; section: "store" | "team" }>();
+const props = withDefaults(defineProps<{ roles?: UserRole[]; buttonPermissions?: AdminButtonPermission[]; section: "store" | "team" }>(), {
+  roles: () => [],
+  buttonPermissions: () => []
+});
 const { t } = useLocale();
 const loading = ref(true), busy = ref(false), message = ref(""), error = ref("");
 const members = ref<MerchantMemberView[]>([]);
