@@ -77,7 +77,7 @@ export class AuthService {
     const roles = user.roles.map(({ role }) => role);
     if (roles.includes("PLATFORM_ADMIN") || roles.includes("PLATFORM_OPERATOR")) return { routePermissions: [...ADMIN_ROUTE_KEYS], buttonPermissions: [...ADMIN_BUTTON_KEYS] };
     const membership = user.merchantMemberships[0];
-    if (membership?.role === "OWNER") return { routePermissions: [...ADMIN_ROUTE_KEYS], buttonPermissions: [...ADMIN_BUTTON_KEYS] };
+    if (membership?.role === "OWNER") return { routePermissions: [...ADMIN_ROUTE_KEYS].filter((item) => !item.startsWith("platform.")), buttonPermissions: [...ADMIN_BUTTON_KEYS] };
     if (membership?.role === "STAFF") return { routePermissions: this.accessList(membership.routePermissions, ADMIN_ROUTE_KEYS), buttonPermissions: this.accessList(membership.buttonPermissions, ADMIN_BUTTON_KEYS) };
     return { routePermissions: ["system.overview", "platform.onboarding"], buttonPermissions: [] };
   }

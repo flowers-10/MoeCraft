@@ -243,30 +243,132 @@ model Store {
 }
 
 model Category {
+  id                 String              @id @default(cuid())
+  parentId           String?
+  slug               String              @unique @db.VarChar(120)
+  nameZhCn           String              @db.VarChar(160)
+  nameEnUs           String?             @db.VarChar(160)
+  descriptionZhCn    String?             @db.VarChar(500)
+  descriptionEnUs    String?             @db.VarChar(500)
+  isActive           Boolean             @default(true)
+  sortOrder          Int                 @default(0)
+  parent             Category?           @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children           Category[]          @relation("CategoryTree")
+  products           Product[]
+  attributeTemplates AttributeTemplate[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([parentId, sortOrder])
+  @@index([isActive, sortOrder])
+}
+
+model Brand {
+  id          String    @id @default(cuid())
+  slug        String    @unique @db.VarChar(120)
+  nameZhCn    String    @db.VarChar(160)
+  nameEnUs    String?   @db.VarChar(160)
+  descriptionZhCn String? @db.VarChar(500)
+  descriptionEnUs String? @db.VarChar(500)
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+model Franchise {
+  id          String      @id @default(cuid())
+  slug        String      @unique @db.VarChar(120)
+  nameZhCn    String      @db.VarChar(160)
+  nameEnUs    String?     @db.VarChar(160)
+  descriptionZhCn String? @db.VarChar(500)
+  descriptionEnUs String? @db.VarChar(500)
+  isActive    Boolean     @default(true)
+  sortOrder   Int         @default(0)
+  characters Character[]
+  products    Product[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+model Character {
+  id          String    @id @default(cuid())
+  franchiseId String
+  slug        String    @unique @db.VarChar(120)
+  nameZhCn    String    @db.VarChar(160)
+  nameEnUs    String?   @db.VarChar(160)
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  franchise   Franchise @relation(fields: [franchiseId], references: [id], onDelete: Restrict)
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([franchiseId, isActive, sortOrder])
+}
+
+model Tag {
   id        String    @id @default(cuid())
   slug      String    @unique @db.VarChar(120)
-  nameZhCn  String    @db.VarChar(160)
-  nameEnUs  String?   @db.VarChar(160)
+  nameZhCn  String    @db.VarChar(100)
+  nameEnUs  String?   @db.VarChar(100)
+  isActive  Boolean   @default(true)
+  sortOrder Int       @default(0)
   products  Product[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+model AttributeTemplate {
+  id          String     @id @default(cuid())
+  categoryId  String?
+  code        String     @unique @db.VarChar(80)
+  nameZhCn    String     @db.VarChar(120)
+  nameEnUs    String?    @db.VarChar(120)
+  inputType   String     @db.VarChar(30)
+  options     Json?
+  isRequired  Boolean    @default(false)
+  isActive    Boolean    @default(true)
+  sortOrder   Int        @default(0)
+  category    Category?  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([categoryId, isActive, sortOrder])
 }
 
 model Product {
   id         String        @id @default(cuid())
   storeId    String
   categoryId String
+  brandId    String?
+  franchiseId String?
+  characterId String?
   titleZhCn  String        @db.VarChar(200)
   titleEnUs  String?       @db.VarChar(200)
   status     ProductStatus @default(DRAFT)
   store      Store         @relation(fields: [storeId], references: [id], onDelete: Restrict)
   category   Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  brand      Brand?        @relation(fields: [brandId], references: [id], onDelete: Restrict)
+  franchise  Franchise?    @relation(fields: [franchiseId], references: [id], onDelete: Restrict)
+  character  Character?    @relation(fields: [characterId], references: [id], onDelete: Restrict)
+  tags       Tag[]
   skus       Sku[]
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
 
   @@index([storeId, status])
   @@index([categoryId, status])
+  @@index([brandId, status])
+  @@index([franchiseId, status])
+  @@index([characterId, status])
 }
 
 model Sku {

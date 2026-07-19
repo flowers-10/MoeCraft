@@ -1,50 +1,41 @@
+<script setup lang="ts">
+import type { CatalogOverview } from "@moecraft/shared";
+const config = useRuntimeConfig();
+const { data, pending, error } = await useAsyncData("storefront-home", () => $fetch<CatalogOverview>(`${config.public.apiBase}/catalog/public`));
+const search = ref("");
+const categories = computed(() => (Array.isArray(data.value?.categories) ? data.value.categories : []).filter(item => !item.parentId).slice(0, 6));
+const products = computed(() => Array.isArray(data.value?.products) ? data.value.products : []);
+const franchises = computed(() => Array.isArray(data.value?.franchises) ? data.value.franchises : []);
+const brands = computed(() => Array.isArray(data.value?.brands) ? data.value.brands : []);
+const discoveries = computed(() => [...franchises.value.slice(0, 3), ...brands.value.slice(0, 3)]);
+function money(amount: number | null, currency: string) { return amount === null ? "价格待公布" : new Intl.NumberFormat("zh-CN", { style: "currency", currency }).format(amount / 100); }
+function submitSearch() { if (search.value.trim()) navigateTo(`/catalog?q=${encodeURIComponent(search.value.trim())}`); }
+useSeoMeta({ title: "MoeCraft 手办商城｜收藏热爱，遇见同好", description: "发现正版手办、同人周边、预售新品与独立创作者作品。" });
+</script>
+
 <template>
-  <main class="page">
-    <p class="eyebrow">MOECRAFT</p>
-    <h1>同人手办商城前台</h1>
-    <p class="lead">
-      当前是 Monorepo 的基础首页，后续会逐步补商品列表、详情页、预售流程、购物车和订单系统。
-    </p>
-    <div class="links">
-      <a href="http://localhost:3101" target="_blank">管理后台</a>
-      <a href="http://localhost:3102/health" target="_blank">后端健康检查</a>
-    </div>
-  </main>
+  <div class="home">
+    <header class="site-header"><NuxtLink class="brand" to="/"><i>M</i><span><b>MoeCraft</b><small>FIGURE MARKET</small></span></NuxtLink><nav><NuxtLink to="/">首页</NuxtLink><NuxtLink to="/catalog">全部分类</NuxtLink><a href="#new">新品</a><a href="#discover">作品与品牌</a></nav><div class="account"><NuxtLink to="/login">登录</NuxtLink><NuxtLink class="join" to="/register">免费注册</NuxtLink></div></header>
+
+    <main>
+<section class="hero"><div class="hero-copy"><span class="eyebrow">COLLECT WHAT YOU LOVE</span><h1>让热爱，成为<br><em>触手可及</em>的收藏。</h1><p>汇聚正版手办、同人创作与限定周边。每一件作品，都连接着创作者与收藏者的共同热爱。</p><form class="search" @submit.prevent="submitSearch"><span>⌕</span><input v-model="search" placeholder="搜索角色、作品、品牌或手办"><button>探索商城</button></form><div class="hero-meta"><span><b>{{ products.length }}</b> 件在售商品</span><span><b>{{ data?.franchises?.length ?? 0 }}</b> 个作品 IP</span><span><b>{{ data?.brands?.length ?? 0 }}</b> 个精选品牌</span></div></div><div class="hero-art" aria-hidden="true"><div class="orb one"/><div class="orb two"/><div class="display-card back"><span>LIMITED</span></div><div class="display-card front"><div class="figure"><i/><b/><em/></div><p>MOECRAFT SELECT</p><strong>01</strong></div><div class="spark s1">✦</div><div class="spark s2">✧</div></div></section>
+
+      <section class="trust"><span>✓ 平台审核商家</span><span>◇ 正版与授权信息</span><span>↻ 安心售后保障</span><span>♙ 创作者友好平台</span></section>
+
+      <section class="section categories"><div class="section-head"><div><small>SHOP BY CATEGORY</small><h2>从喜欢的类型开始</h2></div><NuxtLink to="/catalog">浏览全部 →</NuxtLink></div><div v-if="pending" class="skeleton-grid"><i v-for="n in 4" :key="n"/></div><div v-else class="category-grid"><NuxtLink v-for="(item,index) in categories" :key="item.id" :to="`/categories/${item.slug}`" :style="{ '--tone': `${245 + index * 8}deg` }"><div class="category-icon"><span>{{ ['✦','◇','○','☆','♢','✧'][index%6] }}</span></div><h3>{{ item.nameZhCn }}</h3><p>{{ item.nameEnUs || 'MoeCraft Collection' }}</p><small>{{ item.productCount }} 件商品</small></NuxtLink><div v-if="!categories.length" class="empty-inline">目录正在筹备，新的收藏分类很快就会出现。</div></div></section>
+
+      <section id="new" class="section products-section"><div class="section-head"><div><small>NEW & NOTEWORTHY</small><h2>新鲜上架</h2></div><NuxtLink to="/catalog">查看全部 →</NuxtLink></div><p v-if="error" class="state">商品数据暂时无法加载，请稍后重试。</p><div v-else-if="products.length" class="product-grid"><article v-for="(product,index) in products" :key="product.id"><div class="product-cover" :class="`tone-${index%4}`"><span v-if="product.inStock">现货</span><span v-else>暂时缺货</span><div class="mini-figure"><i/><b/><em/></div><small>MOECRAFT</small></div><div class="product-info"><p>{{ product.franchiseName || product.categoryName }}</p><h3>{{ product.titleZhCn }}</h3><small>{{ product.brandName || product.storeName }}</small><footer><b>{{ money(product.priceAmount, product.currency) }}</b><NuxtLink :to="`/stores/${product.storeSlug}`">店铺 →</NuxtLink></footer></div></article></div><div v-else class="product-empty"><div class="empty-art"><span>✦</span><i/><b/></div><div><small>COMING SOON</small><h3>第一批精选商品正在上架</h3><p>商家通过审核并发布商品后，会第一时间出现在这里。你可以先逛逛类目、品牌与作品 IP。</p><NuxtLink to="/catalog">探索目录 →</NuxtLink></div></div></section>
+
+      <section id="discover" class="discover"><div><small>EXPLORE THE UNIVERSE</small><h2>循着作品与品牌，<br>发现下一件心动收藏。</h2><p>无论是熟悉的角色，还是独立创作者的新作，都值得拥有自己的展示舞台。</p><NuxtLink to="/catalog">进入发现页 →</NuxtLink></div><div class="discovery-list"><NuxtLink v-for="(item,index) in discoveries" :key="item.id" :to="`/${'characterCount' in item?'franchises':'brands'}/${item.slug}`"><span>0{{ index + 1 }}</span><div><b>{{ item.nameZhCn }}</b><small>{{ item.nameEnUs || 'MOECRAFT SELECTION' }}</small></div><em>↗</em></NuxtLink><p v-if="!discoveries.length">品牌与作品资料正在持续收录。</p></div></section>
+
+      <section class="creator"><div><small>FOR CREATORS & MERCHANTS</small><h2>让你的作品，被更多同好看见。</h2><p>加入 MoeCraft 商家平台，管理商品、库存和订单，建立属于自己的收藏品牌。</p></div><a href="http://localhost:3101/platform/merchant-applications">申请成为商家 →</a></section>
+    </main>
+
+    <footer class="site-footer"><div class="brand light"><i>M</i><span><b>MoeCraft</b><small>FIGURE MARKET</small></span></div><p>连接创作者、商家与收藏者的手办周边商城。</p><nav><NuxtLink to="/catalog">商城目录</NuxtLink><NuxtLink to="/login">账号登录</NuxtLink><a href="http://localhost:3101">商家后台</a></nav><small>© 2026 MoeCraft. Made for every passion.</small></footer>
+  </div>
 </template>
 
 <style scoped>
-.page {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 48px 24px;
-  font-family: Arial, sans-serif;
-}
-
-.eyebrow {
-  margin: 0;
-  color: #7a7a7a;
-  font-size: 12px;
-  letter-spacing: 0.2em;
-}
-
-h1 {
-  margin: 12px 0 16px;
-  font-size: 40px;
-}
-
-.lead {
-  max-width: 720px;
-  color: #555;
-  line-height: 1.8;
-}
-
-.links {
-  display: flex;
-  gap: 16px;
-  margin-top: 24px;
-}
-
-.links a {
-  color: #111;
-}
+:global(body){margin:0;background:#fbfaff;color:#252436;font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif}.home{overflow:hidden}.site-header{position:relative;z-index:5;display:flex;max-width:1240px;height:76px;align-items:center;justify-content:space-between;padding:0 24px;margin:auto}.brand{display:flex;align-items:center;gap:10px;color:#272638;text-decoration:none}.brand i{display:grid;width:38px;height:38px;place-items:center;border-radius:12px;background:linear-gradient(145deg,#7559e8,#a56fea);box-shadow:0 9px 24px #7359e84a;color:white;font-style:normal;font-weight:800}.brand span{display:grid}.brand b{font-size:15px}.brand small{color:#9a96aa;font-size:8px;letter-spacing:.13em}.site-header nav{display:flex;gap:28px}.site-header nav a{color:#666477;font-size:13px;text-decoration:none}.site-header nav a:hover{color:#7359e8}.account{display:flex;align-items:center;gap:8px}.account a{padding:9px 13px;color:#59576a;font-size:12px;text-decoration:none}.account .join{border-radius:9px;background:#292638;color:white}.hero{position:relative;display:grid;min-height:610px;grid-template-columns:1.05fr .95fr;align-items:center;padding:65px max(24px,calc((100vw - 1192px)/2));background:radial-gradient(circle at 85% 10%,#dcd2ff 0,transparent 31%),radial-gradient(circle at 5% 95%,#ffe2ec 0,transparent 27%),linear-gradient(135deg,#f8f5ff,#fff)}.hero-copy{position:relative;z-index:2}.eyebrow,.section-head small,.discover>div>small,.creator small{color:#7559e8;font-size:10px;font-weight:800;letter-spacing:.19em}.hero h1{margin:15px 0 18px;font-size:clamp(48px,5.4vw,76px);line-height:1.06;letter-spacing:-.055em}.hero h1 em{color:#7559e8;font-style:normal}.hero-copy>p{max-width:610px;color:#777487;font-size:15px;line-height:1.9}.search{display:flex;max-width:620px;padding:6px;margin-top:30px;border:1px solid #e1ddea;border-radius:14px;background:white;box-shadow:0 18px 45px #37305012}.search span{padding:10px 4px 0 12px;color:#938ca7;font-size:20px}.search input{min-width:0;flex:1;padding:0 12px;border:0;outline:0;font:inherit}.search button{padding:14px 21px;border:0;border-radius:10px;background:#7559e8;color:white;font-weight:700}.hero-meta{display:flex;gap:30px;margin-top:25px;color:#8c899a;font-size:11px}.hero-meta b{display:block;color:#353245;font-size:17px}.hero-art{position:relative;height:480px}.orb{position:absolute;border-radius:50%;filter:blur(1px)}.orb.one{width:290px;height:290px;top:60px;left:120px;background:linear-gradient(145deg,#d7ccff,#f4efff)}.orb.two{width:170px;height:170px;right:15px;bottom:20px;background:#ffe0e9}.display-card{position:absolute;border:1px solid #ffffffb5;border-radius:30px;box-shadow:0 35px 70px #3c315827;backdrop-filter:blur(10px)}.display-card.back{width:260px;height:330px;top:35px;right:35px;transform:rotate(11deg);background:#ffffff66}.display-card.back span{position:absolute;right:20px;top:20px;color:#8068d4;font-size:9px;letter-spacing:.16em}.display-card.front{width:280px;height:370px;left:80px;top:65px;transform:rotate(-5deg);background:linear-gradient(155deg,#fff,#eee9ff)}.display-card.front p{position:absolute;left:24px;bottom:22px;color:#857e99;font-size:9px;letter-spacing:.13em}.display-card.front strong{position:absolute;right:22px;bottom:18px;color:#d7d0e8;font-size:37px}.figure,.mini-figure{position:absolute;left:50%;top:46%;width:120px;height:210px;transform:translate(-50%,-50%)}.figure i,.mini-figure i{position:absolute;width:70px;height:70px;left:25px;border-radius:50% 50% 45% 45%;background:linear-gradient(145deg,#6a53cf,#9b70e1);box-shadow:-18px 6px 0 -8px #5845ba,18px 6px 0 -8px #5845ba}.figure b,.mini-figure b{position:absolute;width:72px;height:93px;left:24px;top:62px;border-radius:45% 45% 20% 20%;background:linear-gradient(145deg,#ff8dab,#f0b2d3)}.figure em,.mini-figure em{position:absolute;width:108px;height:17px;left:6px;bottom:5px;border-radius:50%;background:#6b5a9e33;box-shadow:0 -30px 0 -4px #eee8f8}.spark{position:absolute;color:#846bdc;font-size:30px}.s1{left:35px;top:25px}.s2{right:5px;top:210px}.trust{display:flex;justify-content:center;gap:clamp(25px,7vw,90px);padding:19px;background:#292638;color:#dedbea;font-size:11px}.section{max-width:1192px;padding:80px 24px;margin:auto}.section-head{display:flex;align-items:end;justify-content:space-between;margin-bottom:27px}.section-head h2{margin:7px 0 0;font-size:31px}.section-head>a{color:#7359e8;font-size:12px;text-decoration:none}.category-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}.category-grid>a{padding:18px;border:1px solid #e7e4ed;border-radius:17px;background:white;color:inherit;text-decoration:none;transition:.2s}.category-grid>a:hover{border-color:#876ee9;transform:translateY(-4px);box-shadow:0 18px 36px #382e6514}.category-icon{display:grid;height:105px;place-items:center;border-radius:13px;background:linear-gradient(145deg,hsl(var(--tone) 80% 94%),hsl(var(--tone) 85% 87%))}.category-icon span{font-size:34px;color:hsl(var(--tone) 55% 55%)}.category-grid h3{margin:15px 0 3px;font-size:14px}.category-grid p{height:28px;margin:0;color:#9b97a8;font-size:9px}.category-grid>a>small{color:#7e798c;font-size:10px}.product-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.product-grid article{overflow:hidden;border:1px solid #e8e5ee;border-radius:18px;background:#fff;transition:.2s}.product-grid article:hover{transform:translateY(-4px);box-shadow:0 22px 40px #30285017}.product-cover{position:relative;height:270px;background:linear-gradient(145deg,#e9e3ff,#f8f5ff)}.product-cover.tone-1{background:linear-gradient(145deg,#ffe2eb,#fff4f7)}.product-cover.tone-2{background:linear-gradient(145deg,#dff4f2,#f4fffd)}.product-cover.tone-3{background:linear-gradient(145deg,#ffe9d5,#fff8ef)}.product-cover>span{position:absolute;z-index:2;left:14px;top:14px;padding:5px 8px;border-radius:999px;background:#ffffffb8;color:#6c6680;font-size:9px}.mini-figure{top:48%;transform:translate(-50%,-50%) scale(.72)}.product-cover>small{position:absolute;right:15px;bottom:13px;color:#8d87a0;font-size:8px;letter-spacing:.14em}.product-info{padding:17px}.product-info>p{margin:0;color:#7b63d9;font-size:9px}.product-info h3{height:39px;margin:7px 0 5px;font-size:14px;line-height:1.4}.product-info>small{color:#9c98a8}.product-info footer{display:flex;align-items:center;justify-content:space-between;margin-top:16px}.product-info footer b{font-size:16px}.product-info footer a{color:#7359e8;font-size:10px;text-decoration:none}.product-empty{display:flex;align-items:center;gap:40px;padding:38px;border:1px dashed #dcd6eb;border-radius:20px;background:#faf8ff}.empty-art{position:relative;width:190px;height:150px;flex:0 0 auto;border-radius:16px;background:linear-gradient(145deg,#e5dcff,#faf8ff)}.empty-art span{position:absolute;left:25px;top:25px;color:#8067dd;font-size:24px}.empty-art i{position:absolute;width:50px;height:50px;left:72px;top:32px;border-radius:50%;background:#8469df}.empty-art b{position:absolute;width:76px;height:53px;left:59px;top:76px;border-radius:50% 50% 15% 15%;background:#ef94b5}.product-empty small{color:#7559e8;letter-spacing:.16em}.product-empty h3{margin:8px 0;font-size:22px}.product-empty p{max-width:560px;color:#888496;line-height:1.7}.product-empty a,.discover a{color:#7559e8;text-decoration:none;font-weight:700}.discover{display:grid;grid-template-columns:.8fr 1.2fr;gap:75px;padding:80px max(24px,calc((100vw - 1144px)/2));background:#2b283a;color:white}.discover h2{margin:10px 0 20px;font-size:38px}.discover>div>p{color:#aaa6ba;line-height:1.8}.discovery-list{display:grid}.discovery-list a{display:grid;grid-template-columns:40px 1fr 30px;align-items:center;padding:17px 5px;border-bottom:1px solid #ffffff1c;color:white;text-decoration:none}.discovery-list a>span{color:#716b84;font-size:10px}.discovery-list a div{display:grid}.discovery-list a small{margin-top:4px;color:#817c91;font-size:9px}.discovery-list em{color:#8f76ef;font-style:normal}.creator{display:flex;max-width:1144px;align-items:center;justify-content:space-between;padding:50px;margin:80px auto;border-radius:23px;background:linear-gradient(125deg,#e9e2ff,#fff0f5)}.creator h2{margin:8px 0}.creator p{color:#777386}.creator>a{padding:14px 20px;border-radius:11px;background:#7559e8;color:white;text-decoration:none;font-weight:700}.site-footer{padding:45px max(24px,calc((100vw - 1144px)/2));background:#211f2d;color:#aaa6b7}.site-footer .brand{color:white}.site-footer>p{font-size:12px}.site-footer nav{display:flex;gap:25px;margin:30px 0}.site-footer nav a{color:#c3bfce;font-size:11px;text-decoration:none}.site-footer>small{color:#6f6b7c}.skeleton-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.skeleton-grid i{height:185px;border-radius:17px;background:linear-gradient(90deg,#f0edf5,#faf8fc,#f0edf5);background-size:200% 100%;animation:shine 1.2s infinite}@keyframes shine{to{background-position:-200% 0}}.empty-inline,.state{padding:35px;color:#8c8898}.empty-inline{grid-column:1/-1}
+@media(max-width:950px){.site-header nav{display:none}.hero{grid-template-columns:1fr}.hero-art{display:none}.category-grid{grid-template-columns:repeat(3,1fr)}.product-grid{grid-template-columns:repeat(2,1fr)}.discover{grid-template-columns:1fr;gap:35px}}@media(max-width:600px){.site-header{height:66px}.account .join{display:none}.hero{min-height:auto;padding-top:65px;padding-bottom:65px}.hero h1{font-size:45px}.search button{padding:12px}.hero-meta{gap:15px}.trust{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:18px 24px}.section{padding-top:58px;padding-bottom:58px}.category-grid{grid-template-columns:repeat(2,1fr)}.product-grid{grid-template-columns:1fr}.product-empty{align-items:flex-start;flex-direction:column}.empty-art{width:100%}.discover h2{font-size:30px}.creator{align-items:flex-start;flex-direction:column;gap:20px;margin:50px 18px;padding:30px}.site-footer nav{flex-wrap:wrap}}
 </style>

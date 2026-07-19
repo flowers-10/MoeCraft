@@ -19,6 +19,7 @@ export const zhCN = {
   "store.title":"店铺与成员","store.subtitle":"维护公开店铺资料、客服与退货信息，并管理团队权限。","store.profile":"店铺资料","store.members":"团队成员","store.invitations":"待处理邀请","store.name":"店铺名称","store.slug":"店铺链接标识","store.description":"店铺介绍","store.serviceEmail":"客服邮箱","store.servicePhone":"客服电话","store.returnAddress":"退货地址","store.recipient":"收件人","store.country":"国家/地区","store.province":"省份","store.city":"城市","store.district":"区县","store.addressLine":"详细地址","store.postalCode":"邮编","store.open":"店铺营业中","store.closed":"店铺暂停营业","store.save":"保存店铺资料","store.inviteUsername":"受邀用户名","store.invite":"发送邀请","store.owner":"店主","store.staff":"员工","store.remove":"移除","store.accept":"接受邀请","store.emptyMembers":"暂无团队成员","store.saved":"店铺资料已保存。","store.invited":"邀请已发送。","store.memberUpdated":"成员权限已更新。","store.memberRemoved":"成员已移除。","store.invitationAccepted":"邀请已接受，请重新登录刷新角色。","store.error":"操作失败，请检查权限和填写内容。",
   "store.phone":"联系电话",
   "store.staffUsername":"员工登录账号","store.staffDisplayName":"员工姓名","store.staffPassword":"初始密码（至少 12 位）","store.routeAccess":"可见页面","store.buttonAccess":"可用操作","store.createStaff":"创建员工账号","store.saveAccess":"保存权限","store.staffCreated":"员工账号已创建。","store.accessSaved":"员工权限已保存。",
+  "nav.catalog":"目录资料",
 } as const;
 
 export type MessageKey = keyof typeof zhCN;

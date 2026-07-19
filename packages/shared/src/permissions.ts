@@ -34,12 +34,12 @@ export const PERMISSIONS = {
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
 export const ADMIN_ROUTE_PERMISSIONS = [
-  "system.overview", "platform.onboarding", "merchant.store", "merchant.team",
+  "system.overview", "platform.onboarding", "platform.catalog", "merchant.store", "merchant.team",
   "commerce.products", "commerce.inventory", "commerce.orders", "commerce.afterSales", "commerce.reports"
 ] as const;
 export type AdminRoutePermission = (typeof ADMIN_ROUTE_PERMISSIONS)[number];
 export const MERCHANT_STAFF_ROUTE_PERMISSIONS = ADMIN_ROUTE_PERMISSIONS.filter(
-  (permission): permission is Exclude<AdminRoutePermission, "platform.onboarding"> => permission !== "platform.onboarding"
+  (permission): permission is Exclude<AdminRoutePermission, `platform.${string}`> => !permission.startsWith("platform.")
 );
 
 export const ADMIN_BUTTON_PERMISSIONS = [
