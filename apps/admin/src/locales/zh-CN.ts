@@ -1,4 +1,5 @@
 export const zhCN = {
+  "nav.productReviews":"商品审核",
   "header.myAccount":"我的账户","header.onboardingRecord":"我的入驻资料","header.onboardingRecordHint":"查看已通过的申请记录","header.storeProfile":"所属店铺","header.storeProfileHint":"查看当前店铺资料",
   "nav.system":"系统总览", "nav.platform":"平台运营", "nav.merchant":"商家中心", "nav.commerce":"交易管理", "nav.storeProfile":"店铺资料", "nav.overview": "工作台", "nav.onboarding": "商家入驻", "nav.products": "商品管理", "nav.inventory": "库存管理", "nav.orders": "订单中心", "nav.afterSales": "售后服务", "nav.members": "成员管理", "nav.reports": "数据报表", "nav.settings": "系统设置",
   "header.welcome": "欢迎回来", "header.localTime": "本地时间", "header.switchLanguage": "切换语言", "header.switchTheme": "切换主题", "header.logout": "退出登录",

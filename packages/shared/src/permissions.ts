@@ -34,7 +34,7 @@ export const PERMISSIONS = {
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
 export const ADMIN_ROUTE_PERMISSIONS = [
-  "system.overview", "platform.onboarding", "platform.catalog", "merchant.store", "merchant.team",
+  "system.overview", "platform.onboarding", "platform.catalog", "platform.productReview", "merchant.store", "merchant.team",
   "commerce.products", "commerce.inventory", "commerce.orders", "commerce.afterSales", "commerce.reports"
 ] as const;
 export type AdminRoutePermission = (typeof ADMIN_ROUTE_PERMISSIONS)[number];
@@ -44,7 +44,7 @@ export const MERCHANT_STAFF_ROUTE_PERMISSIONS = ADMIN_ROUTE_PERMISSIONS.filter(
 
 export const ADMIN_BUTTON_PERMISSIONS = [
   "store.profile.edit", "team.staff.create", "team.staff.permissions", "team.staff.remove",
-  "products.manage", "inventory.adjust", "orders.manage", "afterSales.manage", "reports.view"
+  "products.manage", "products.submit", "products.review", "inventory.adjust", "orders.manage", "afterSales.manage", "reports.view"
 ] as const;
 export type AdminButtonPermission = (typeof ADMIN_BUTTON_PERMISSIONS)[number];
 

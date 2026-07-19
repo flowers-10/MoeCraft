@@ -17,7 +17,7 @@ const timer = window.setInterval(() => { now.value = new Date(); }, 1000);
 onBeforeUnmount(() => window.clearInterval(timer));
 
 const pageKeys: Record<string, MessageKey> = {
-  overview: "nav.overview", onboarding: "nav.onboarding", products: "nav.products",
+  overview: "nav.overview", onboarding: "nav.onboarding", productReviews:"nav.productReviews", products: "nav.products",
   inventory: "nav.inventory", orders: "nav.orders", afterSales: "nav.afterSales",
   members: "nav.members", reports: "nav.reports", settings: "nav.settings",
 };

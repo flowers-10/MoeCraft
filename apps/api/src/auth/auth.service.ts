@@ -6,7 +6,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import type { LoginDto, RegisterDto } from "./auth.dto";
 import type { AccessProfile } from "@moecraft/shared";
 import { Prisma } from "@prisma/client";
-import { ADMIN_BUTTON_KEYS, ADMIN_ROUTE_KEYS } from "./admin-access";
+import { ADMIN_BUTTON_KEYS, ADMIN_ROUTE_KEYS, MERCHANT_BUTTON_KEYS } from "./admin-access";
 
 const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const RESET_TTL_MS = 30 * 60 * 1000;
@@ -77,8 +77,8 @@ export class AuthService {
     const roles = user.roles.map(({ role }) => role);
     if (roles.includes("PLATFORM_ADMIN") || roles.includes("PLATFORM_OPERATOR")) return { routePermissions: [...ADMIN_ROUTE_KEYS], buttonPermissions: [...ADMIN_BUTTON_KEYS] };
     const membership = user.merchantMemberships[0];
-    if (membership?.role === "OWNER") return { routePermissions: [...ADMIN_ROUTE_KEYS].filter((item) => !item.startsWith("platform.")), buttonPermissions: [...ADMIN_BUTTON_KEYS] };
-    if (membership?.role === "STAFF") return { routePermissions: this.accessList(membership.routePermissions, ADMIN_ROUTE_KEYS), buttonPermissions: this.accessList(membership.buttonPermissions, ADMIN_BUTTON_KEYS) };
+    if (membership?.role === "OWNER") return { routePermissions: [...ADMIN_ROUTE_KEYS].filter((item) => !item.startsWith("platform.")), buttonPermissions: [...MERCHANT_BUTTON_KEYS] };
+    if (membership?.role === "STAFF") return { routePermissions: this.accessList(membership.routePermissions, ADMIN_ROUTE_KEYS), buttonPermissions: this.accessList(membership.buttonPermissions, MERCHANT_BUTTON_KEYS) };
     return { routePermissions: ["system.overview", "platform.onboarding"], buttonPermissions: [] };
   }
 

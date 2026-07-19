@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsIn, IsInt, IsObject, IsOptional, IsString, Length, Max, MaxLength, Min, ValidateNested } from "class-validator";
+import { IsArray, IsBoolean, IsIn, IsInt, IsObject, IsOptional, IsString, Length, Max, MaxLength, Min, MinLength, ValidateNested } from "class-validator";
 import { Type } from "class-transformer";
 
 export class ProductSkuDraftDto {
@@ -43,4 +43,15 @@ export class SaveProductDraftDto {
   @IsOptional() @IsString() @MaxLength(500) copyrightNotice?: string;
   @IsArray() @ValidateNested({ each: true }) @Type(() => ProductSkuDraftDto) skus!: ProductSkuDraftDto[];
   @IsArray() @ValidateNested({ each: true }) @Type(() => ProductMediaDraftDto) media!: ProductMediaDraftDto[];
+}
+
+export class ProductFieldFeedbackDto {
+  @IsString() @MinLength(1) @MaxLength(80) field!: string;
+  @IsString() @MinLength(1) @MaxLength(500) message!: string;
+}
+
+export class ProductReviewDecisionDto {
+  @IsBoolean() approved!: boolean;
+  @IsOptional() @IsString() @MaxLength(1000) reason?: string;
+  @IsArray() @ValidateNested({ each: true }) @Type(() => ProductFieldFeedbackDto) fieldFeedback!: ProductFieldFeedbackDto[];
 }

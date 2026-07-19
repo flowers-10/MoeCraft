@@ -4,7 +4,7 @@ import type { Router } from "vue-router";
 const access = () => JSON.parse(sessionStorage.getItem("mc-admin-route-permissions") ?? "null") as AdminRoutePermission[] | null;
 const roles = () => JSON.parse(sessionStorage.getItem("mc-admin-roles") ?? "[]") as string[];
 const fallback = (permissions: AdminRoutePermission[]) => {
-  const routes: Array<[AdminRoutePermission, string]> = [["merchant.store", "/merchant/store"], ["merchant.team", "/merchant/team"], ["system.overview", "/system/overview"], ["platform.catalog", "/platform/catalog"], ["platform.onboarding", "/platform/merchant-applications"], ["commerce.products", "/commerce/products"], ["commerce.orders", "/commerce/orders"]];
+  const routes: Array<[AdminRoutePermission, string]> = [["merchant.store", "/merchant/store"], ["merchant.team", "/merchant/team"], ["system.overview", "/system/overview"], ["platform.productReview", "/platform/product-reviews"], ["platform.catalog", "/platform/catalog"], ["platform.onboarding", "/platform/merchant-applications"], ["commerce.products", "/commerce/products"], ["commerce.orders", "/commerce/orders"]];
   return routes.find(([key]) => permissions.includes(key))?.[1] ?? "/login";
 };
 

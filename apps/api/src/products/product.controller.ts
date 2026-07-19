@@ -13,4 +13,8 @@ export class ProductController {
   @Post() @RequireAdminButton("products.manage") create(@Req() req:{user:RequestPrincipal},@Body() dto:SaveProductDraftDto){return this.products.create(req.user.sub,dto);}
   @Put(":id") @RequireAdminButton("products.manage") update(@Req() req:{user:RequestPrincipal},@Param("id") id:string,@Body() dto:SaveProductDraftDto){return this.products.update(req.user.sub,id,dto);}
   @Delete(":id") @RequireAdminButton("products.manage") archive(@Req() req:{user:RequestPrincipal},@Param("id") id:string){return this.products.archive(req.user.sub,id);}
+  @Post(":id/submit") @RequireAdminButton("products.submit") submit(@Req() req:{user:RequestPrincipal},@Param("id") id:string){return this.products.submit(req.user.sub,id);}
+  @Post(":id/publish") @RequireAdminButton("products.manage") publish(@Req() req:{user:RequestPrincipal},@Param("id") id:string){return this.products.publish(req.user.sub,id);}
+  @Post(":id/unpublish") @RequireAdminButton("products.manage") unpublish(@Req() req:{user:RequestPrincipal},@Param("id") id:string){return this.products.unpublish(req.user.sub,id);}
+  @Post(":id/copy") @RequireAdminButton("products.manage") copy(@Req() req:{user:RequestPrincipal},@Param("id") id:string){return this.products.copy(req.user.sub,id);}
 }

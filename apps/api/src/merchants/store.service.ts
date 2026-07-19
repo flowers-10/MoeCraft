@@ -3,7 +3,7 @@ import type { MerchantMemberView, StoreProfileView, StoreReturnAddress } from "@
 import { Prisma } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../prisma/prisma.service";
-import { ADMIN_BUTTON_KEYS, ADMIN_ROUTE_KEYS } from "../auth/admin-access";
+import { ADMIN_ROUTE_KEYS, MERCHANT_BUTTON_KEYS } from "../auth/admin-access";
 import type { CreateStaffAccountDto, SaveStoreProfileDto, UpdateMemberAccessDto } from "./store.dto";
 
 @Injectable()
@@ -52,6 +52,6 @@ export class StoreService {
   private async member(merchantId:string,id:string){const item=await this.prisma.merchantMember.findFirst({where:{id,merchantId}});if(!item)throw new NotFoundException("MERCHANT_MEMBER_NOT_FOUND");return item;}
   private async validateMedia(ownerId:string,ids:string[]){if(!ids.length)return;const count=await this.prisma.fileAsset.count({where:{id:{in:ids},ownerId,purpose:"store-media",status:{notIn:["DELETED","QUARANTINED"]}}});if(count!==ids.length)throw new BadRequestException("INVALID_STORE_MEDIA");}
   private storeView(store:{id:string;merchantId:string;name:string;slug:string;logoFileId:string|null;bannerFileId:string|null;description:string|null;customerServiceEmail:string|null;customerServicePhone:string|null;returnAddress:Prisma.JsonValue|null;isOpen:boolean;updatedAt:Date},merchantStatus:"ACTIVE"|"SUSPENDED"|"CLOSED"):StoreProfileView{return{...store,returnAddress:store.returnAddress as StoreReturnAddress|null,merchantStatus,updatedAt:store.updatedAt.toISOString()};}
-  private memberView(item:{id:string;userId:string;role:"OWNER"|"STAFF";routePermissions:Prisma.JsonValue|null;buttonPermissions:Prisma.JsonValue|null;createdAt:Date;user:{username:string;displayName:string;isActive:boolean}}):MerchantMemberView{return{id:item.id,userId:item.userId,username:item.user.username,displayName:item.user.displayName,isActive:item.user.isActive,role:item.role,routePermissions:item.role==="OWNER"?[...ADMIN_ROUTE_KEYS]:this.permissionList(item.routePermissions,ADMIN_ROUTE_KEYS),buttonPermissions:item.role==="OWNER"?[...ADMIN_BUTTON_KEYS]:this.permissionList(item.buttonPermissions,ADMIN_BUTTON_KEYS),createdAt:item.createdAt.toISOString()};}
+  private memberView(item:{id:string;userId:string;role:"OWNER"|"STAFF";routePermissions:Prisma.JsonValue|null;buttonPermissions:Prisma.JsonValue|null;createdAt:Date;user:{username:string;displayName:string;isActive:boolean}}):MerchantMemberView{return{id:item.id,userId:item.userId,username:item.user.username,displayName:item.user.displayName,isActive:item.user.isActive,role:item.role,routePermissions:item.role==="OWNER"?[...ADMIN_ROUTE_KEYS].filter(key=>!key.startsWith("platform.")):this.permissionList(item.routePermissions,ADMIN_ROUTE_KEYS),buttonPermissions:item.role==="OWNER"?[...MERCHANT_BUTTON_KEYS]:this.permissionList(item.buttonPermissions,MERCHANT_BUTTON_KEYS),createdAt:item.createdAt.toISOString()};}
   private permissionList<T extends string>(value:Prisma.JsonValue|null,allowed:readonly T[]):T[]{return Array.isArray(value)?value.filter((item):item is T=>typeof item==="string"&&allowed.includes(item as T)):[];}
 }

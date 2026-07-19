@@ -31,6 +31,8 @@ export const PRODUCT_STATUSES = [
   "ARCHIVED"
 ] as const;
 export type ProductStatus = (typeof PRODUCT_STATUSES)[number];
+export const PRODUCT_STATUS_TRANSITIONS:Readonly<Record<ProductStatus,readonly ProductStatus[]>>={DRAFT:["PENDING_REVIEW","ARCHIVED"],PENDING_REVIEW:["APPROVED","REJECTED"],APPROVED:["ACTIVE","DRAFT","ARCHIVED"],REJECTED:["PENDING_REVIEW","ARCHIVED"],ACTIVE:["INACTIVE"],INACTIVE:["ACTIVE","DRAFT","ARCHIVED"],ARCHIVED:[]};
+export function canTransitionProduct(from:ProductStatus,to:ProductStatus){return PRODUCT_STATUS_TRANSITIONS[from].includes(to);}
 
 export const ORDER_STATUSES = [
   "PENDING_PAYMENT",

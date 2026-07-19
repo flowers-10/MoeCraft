@@ -18,6 +18,7 @@ export class CatalogService {
       this.prisma.attributeTemplate.findMany({ where: active, orderBy: [{ sortOrder: "asc" }, { nameZhCn: "asc" }] }),
       this.prisma.product.findMany({ where: { status: "ACTIVE", store: { isOpen: true, merchant: { status: "ACTIVE" } } }, include: { store: true, category: true, brand: true, franchise: true, skus: { include: { inventory: true }, orderBy: { priceAmount: "asc" } } }, orderBy: { updatedAt: "desc" }, take: 12 })
     ]);
+    const sellableProducts = products.filter((item) => item.skus.some((sku) => (sku.inventory?.onHand ?? 0) - (sku.inventory?.reserved ?? 0) > 0));
     return {
       categories: categories.map((item) => this.base(item, item._count.products)),
       brands: brands.map((item) => this.base(item, item._count.products)),
@@ -25,7 +26,7 @@ export class CatalogService {
       characters: characters.map((item) => ({ ...this.base(item, item._count.products), franchiseId: item.franchiseId, franchiseName: item.franchise.nameZhCn })),
       tags: tags.map((item) => this.base(item, item._count.products)),
       attributeTemplates: attributeTemplates.map((item) => ({ ...item, options: this.stringArray(item.options), createdAt: item.createdAt.toISOString(), updatedAt: item.updatedAt.toISOString() })),
-      products: products.map((item) => ({ id: item.id, titleZhCn: item.titleZhCn, titleEnUs: item.titleEnUs, storeName: item.store.name, storeSlug: item.store.slug, categoryName: item.category?.nameZhCn ?? null, brandName: item.brand?.nameZhCn ?? null, franchiseName: item.franchise?.nameZhCn ?? null, priceAmount: item.skus[0]?.priceAmount ?? null, currency: item.skus[0]?.currency ?? "CNY", inStock: item.skus.some((sku) => (sku.inventory?.onHand ?? 0) - (sku.inventory?.reserved ?? 0) > 0) }))
+      products: sellableProducts.map((item) => ({ id: item.id, titleZhCn: item.titleZhCn, titleEnUs: item.titleEnUs, storeName: item.store.name, storeSlug: item.store.slug, categoryName: item.category?.nameZhCn ?? null, brandName: item.brand?.nameZhCn ?? null, franchiseName: item.franchise?.nameZhCn ?? null, priceAmount: item.skus[0]?.priceAmount ?? null, currency: item.skus[0]?.currency ?? "CNY", inStock: true }))
     };
   }
 

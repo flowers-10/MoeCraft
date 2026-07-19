@@ -368,6 +368,7 @@ model Product {
   tags       Tag[]
   skus       Sku[]
   media      ProductMedia[]
+  reviewEvents ProductReviewEvent[]
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
 
@@ -376,6 +377,21 @@ model Product {
   @@index([brandId, status])
   @@index([franchiseId, status])
   @@index([characterId, status])
+}
+
+model ProductReviewEvent {
+  id            String        @id @default(cuid())
+  productId     String
+  actorId       String
+  fromStatus    ProductStatus
+  toStatus      ProductStatus
+  reason        String?       @db.VarChar(1000)
+  fieldFeedback Json?
+  product       Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt     DateTime      @default(now())
+
+  @@index([productId, createdAt])
+  @@index([toStatus, createdAt])
 }
 
 model Sku {

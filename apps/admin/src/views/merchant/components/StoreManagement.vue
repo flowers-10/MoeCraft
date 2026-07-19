@@ -20,9 +20,9 @@ const isOwner = computed(() => props.roles.includes("MERCHANT_OWNER"));
 const can = (key: AdminButtonPermission) => isOwner.value || props.buttonPermissions.includes(key);
 const staff = reactive({ username: "", displayName: "", password: "", routePermissions: ["system.overview"] as AdminRoutePermission[], buttonPermissions: [] as AdminButtonPermission[] });
 const routeOptions = [...MERCHANT_STAFF_ROUTE_PERMISSIONS];
-const buttonOptions = [...ADMIN_BUTTON_PERMISSIONS];
-const routeLabels: Record<AdminRoutePermission, string> = { "system.overview": "系统总览", "platform.onboarding": "商家入驻", "platform.catalog": "目录资料", "merchant.store": "店铺资料", "merchant.team": "成员管理", "commerce.products": "商品管理", "commerce.inventory": "库存管理", "commerce.orders": "订单中心", "commerce.afterSales": "售后服务", "commerce.reports": "数据报表" };
-const buttonLabels: Record<AdminButtonPermission, string> = { "store.profile.edit": "编辑店铺资料", "team.staff.create": "创建员工账号", "team.staff.permissions": "编辑员工权限", "team.staff.remove": "停用员工账号", "products.manage": "管理商品", "inventory.adjust": "调整库存", "orders.manage": "处理订单", "afterSales.manage": "处理售后", "reports.view": "查看报表" };
+const buttonOptions = ADMIN_BUTTON_PERMISSIONS.filter((key) => key !== "products.review");
+const routeLabels: Record<AdminRoutePermission, string> = { "system.overview": "系统总览", "platform.onboarding": "商家入驻", "platform.catalog": "目录资料", "platform.productReview":"商品审核", "merchant.store": "店铺资料", "merchant.team": "成员管理", "commerce.products": "商品管理", "commerce.inventory": "库存管理", "commerce.orders": "订单中心", "commerce.afterSales": "售后服务", "commerce.reports": "数据报表" };
+const buttonLabels: Record<AdminButtonPermission, string> = { "store.profile.edit": "编辑店铺资料", "team.staff.create": "创建员工账号", "team.staff.permissions": "编辑员工权限", "team.staff.remove": "停用员工账号", "products.manage": "管理商品", "products.submit":"提交商品审核", "products.review":"审核商品", "inventory.adjust": "调整库存", "orders.manage": "处理订单", "afterSales.manage": "处理售后", "reports.view": "查看报表" };
 const memberColumns: UiTableColumn[] = [{ key: "member", label: "成员", width: "23%" }, { key: "role", label: "角色", width: "9%" }, { key: "status", label: "状态", width: "9%" }, { key: "permissions", label: "页面权限", width: "22%" }, { key: "createdAt", label: "加入时间", width: "12%" }, { key: "actions", label: "操作", width: "25%", align: "right" }];
 const filteredMembers = computed(() => members.value.filter((member) => {
   const term = keyword.value.trim().toLowerCase();
