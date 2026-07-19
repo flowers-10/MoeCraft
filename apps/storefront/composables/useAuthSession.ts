@@ -1,3 +1,4 @@
+import type { ApiResponse } from "@moecraft/shared";
 type AuthUser = { id: string; username: string; displayName: string; roles: string[] };
 type AuthResponse = { accessToken: string; refreshToken: string; user: AuthUser };
 
@@ -14,17 +15,17 @@ export function useAuthSession() {
   }
 
   async function login(account: string, password: string) {
-    accept(await $fetch<AuthResponse>(`${config.public.apiBase}/auth/login`, { method: "POST", body: { account, password } }));
+    accept((await $fetch<ApiResponse<AuthResponse>>(`${config.public.apiBase}/auth/login`, { method: "POST", body: { account, password } })).resultData);
   }
 
   async function register(username: string, displayName: string, password: string) {
-    accept(await $fetch<AuthResponse>(`${config.public.apiBase}/auth/register`, { method: "POST", body: { username, displayName, password } }));
+    accept((await $fetch<ApiResponse<AuthResponse>>(`${config.public.apiBase}/auth/register`, { method: "POST", body: { username, displayName, password } })).resultData);
   }
 
   async function restore() {
     if (!accessToken.value) return false;
     try {
-      user.value = await $fetch<AuthUser>(`${config.public.apiBase}/auth/me`, { headers: { Authorization: `Bearer ${accessToken.value}` } });
+      user.value = (await $fetch<ApiResponse<AuthUser>>(`${config.public.apiBase}/auth/me`, { headers: { Authorization: `Bearer ${accessToken.value}` } })).resultData;
       return true;
     } catch { user.value = null; accessToken.value = null; return false; }
   }

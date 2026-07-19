@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import type { MerchantApplicationStatus, MerchantApplicationView } from "@moecraft/shared";
+import type { MerchantApplicationStatus, MerchantApplicationView, PaginatedResult } from "@moecraft/shared";
 import { Prisma, type MerchantApplication } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import type { ReviewMerchantApplicationDto, SaveMerchantApplicationDto, SetMerchantStatusDto } from "./merchant-onboarding.dto";
@@ -55,14 +55,15 @@ export class MerchantOnboardingService {
     return this.transition(application, applicantId, "WITHDRAWN", "Application withdrawn");
   }
 
-  async queue(status?: MerchantApplicationStatus): Promise<MerchantApplicationView[]> {
-    const applications = await this.prisma.merchantApplication.findMany({
-      where: { status: status && REVIEW_QUEUE_STATUSES.includes(status) ? status : { in: REVIEW_QUEUE_STATUSES } },
-      orderBy: [{ submittedAt: "asc" }, { createdAt: "asc" }], include: { timeline: { orderBy: { createdAt: "asc" } } }
-    });
+  async queue(status?: MerchantApplicationStatus, page = 1, pageSize = 20): Promise<PaginatedResult<MerchantApplicationView>> {
+    const where = { status: status && REVIEW_QUEUE_STATUSES.includes(status) ? status : { in: REVIEW_QUEUE_STATUSES } };
+    const [applications, total] = await this.prisma.$transaction([
+      this.prisma.merchantApplication.findMany({ where, skip: (page - 1) * pageSize, take: pageSize, orderBy: [{ submittedAt: "asc" }, { createdAt: "asc" }], include: { timeline: { orderBy: { createdAt: "asc" } } } }),
+      this.prisma.merchantApplication.count({ where })
+    ]);
     const merchants = await this.prisma.merchant.findMany({ where: { ownerId: { in: applications.map((item) => item.applicantId) } } });
     const merchantStatuses = new Map(merchants.map((merchant) => [merchant.ownerId, merchant.status]));
-    return applications.map((item) => this.toView(item, merchantStatuses.get(item.applicantId) ?? null));
+    return { items: applications.map((item) => this.toView(item, merchantStatuses.get(item.applicantId) ?? null)), pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) } };
   }
 
   async review(id: string, reviewerId: string, dto: ReviewMerchantApplicationDto): Promise<MerchantApplicationView> {

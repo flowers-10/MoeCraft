@@ -6,17 +6,23 @@ export type AppHealth = Readonly<{
   time: IsoDateTime;
 }>;
 
-export type ApiSuccess<Data> = Readonly<{
-  data: Data;
+export type ApiResponse<Data> = Readonly<{
+  code: 0;
+  message: "OK";
+  resultData: Data;
   requestId: string;
 }>;
 
-export type ApiError<Code extends string = string> = Readonly<{
+export type ApiErrorResponse<Code extends string = string> = Readonly<{
   code: Code;
   message: string;
+  resultData: null;
   requestId: string;
   details?: Readonly<Record<string, unknown>>;
 }>;
+
+export type Pagination = Readonly<{ page: number; pageSize: number; total: number; totalPages: number }>;
+export type PaginatedResult<Item> = Readonly<{ items: Item[]; pagination: Pagination }>;
 import type { MerchantApplicationStatus } from "./statuses";
 
 export type MerchantApplicationProfile = {

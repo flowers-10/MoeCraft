@@ -6,12 +6,14 @@ import { validateEnvironment } from "./config/environment";
 import { PrismaModule } from "./prisma/prisma.module";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { ThrottlerGuard } from "@nestjs/throttler";
-import { APP_GUARD } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { AuthModule } from "./auth/auth.module";
 import { AuthorizationGuard } from "./auth/authorization";
 import { AuditModule } from "./audit/audit.module";
 import { FilesModule } from "./files/files.module";
 import { MerchantsModule } from "./merchants/merchants.module";
+import { ApiExceptionFilter } from "./http/api-exception.filter";
+import { ApiResponseInterceptor } from "./http/api-response.interceptor";
 
 @Module({
   imports: [
@@ -28,6 +30,6 @@ import { MerchantsModule } from "./merchants/merchants.module";
     MerchantsModule
   ],
   controllers: [AppController],
-  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }, { provide: APP_GUARD, useClass: AuthorizationGuard }]
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }, { provide: APP_GUARD, useClass: AuthorizationGuard }, { provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor }, { provide: APP_FILTER, useClass: ApiExceptionFilter }]
 })
 export class AppModule {}

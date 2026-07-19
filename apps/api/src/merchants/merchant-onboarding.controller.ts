@@ -24,9 +24,11 @@ export class MerchantOnboardingController {
   withdraw(@Req() request: { user: RequestPrincipal }) { return this.onboarding.withdraw(request.user.sub); }
 
   @Get() @RequirePermissions("merchant:review")
-  queue(@Query("status") rawStatus?: string) {
+  queue(@Query("status") rawStatus?: string, @Query("page") rawPage = "1", @Query("pageSize") rawPageSize = "20") {
     const status = REVIEW_QUEUE_STATUSES.find((item) => item === rawStatus);
-    return this.onboarding.queue(status);
+    const page = Math.max(Number.parseInt(rawPage, 10) || 1, 1);
+    const pageSize = Math.min(Math.max(Number.parseInt(rawPageSize, 10) || 20, 1), 100);
+    return this.onboarding.queue(status, page, pageSize);
   }
 
   @Post(":id/review") @RequirePermissions("merchant:review")
