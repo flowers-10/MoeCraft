@@ -9,7 +9,7 @@ const props = defineProps<{
   theme: "system" | "light" | "dark";
   user: { displayName: string; username: string; roles: UserRole[] } | null;
 }>();
-defineEmits<{ setTheme: [theme: "system" | "light" | "dark"]; toggleLocale: []; navigate: [page: string]; logout: [] }>();
+defineEmits<{ toggleTheme: []; toggleLocale: []; navigate: [page: string]; logout: [] }>();
 
 const { locale, t } = useLocale();
 const now = ref(new Date());
@@ -32,10 +32,10 @@ const rolePriority: UserRole[] = ["PLATFORM_ADMIN", "PLATFORM_OPERATOR", "MERCHA
 const primaryRole = computed(() => rolePriority.find((item) => props.user?.roles.includes(item)) ?? "CUSTOMER");
 const role = computed(() => t(roleKeys[primaryRole.value]));
 const initials = computed(() => (props.user?.displayName || props.user?.username || "M").slice(0, 1).toUpperCase());
-const routePermissions = computed(() => JSON.parse(sessionStorage.getItem("mc-admin-route-permissions") ?? "[]") as string[]);
 const isOwner = computed(() => props.user?.roles.includes("MERCHANT_OWNER") ?? false);
-const showOnboarding = computed(() => props.activePage !== "onboarding" && isOwner.value);
-const showStore = computed(() => props.activePage !== "settings" && routePermissions.value.includes("merchant.store"));
+const isMerchant = computed(() => props.user?.roles.some((item) => item === "MERCHANT_OWNER" || item === "MERCHANT_STAFF") ?? false);
+const showOnboarding = computed(() => isOwner.value);
+const showStore = computed(() => isMerchant.value);
 </script>
 
 <template>
@@ -44,14 +44,7 @@ const showStore = computed(() => props.activePage !== "settings" && routePermiss
     <div class="header-actions">
       <div class="clock" :title="t('header.localTime')"><i>◷</i><div><b>{{ time }}</b><small>{{ date }}</small></div></div>
       <button class="tool-button language" :aria-label="t('header.switchLanguage')" @click="$emit('toggleLocale')"><span>{{ locale === 'zh-CN' ? '中' : 'EN' }}</span>{{ locale === 'zh-CN' ? '中文' : 'English' }}</button>
-      <div class="theme-menu">
-        <button class="tool-button theme" type="button" :aria-label="t('header.switchTheme')">{{ theme === 'dark' ? '☾' : theme === 'light' ? '☀' : '◐' }}</button>
-        <div class="theme-popover">
-          <button type="button" :class="{ active: theme === 'system' }" @click="$emit('setTheme', 'system')"><span>◐</span><b>跟随系统</b><i>✓</i></button>
-          <button type="button" :class="{ active: theme === 'light' }" @click="$emit('setTheme', 'light')"><span>☀</span><b>浅色</b><i>✓</i></button>
-          <button type="button" :class="{ active: theme === 'dark' }" @click="$emit('setTheme', 'dark')"><span>☾</span><b>深色</b><i>✓</i></button>
-        </div>
-      </div>
+      <button class="tool-button theme" :aria-label="t('header.switchTheme')" @click="$emit('toggleTheme')">{{ theme === 'dark' ? '☾' : theme === 'light' ? '☀' : '◐' }}</button>
       <div class="divider" />
       <div class="profile-menu">
         <button class="profile" type="button" :aria-label="t('header.myAccount')">
@@ -73,7 +66,6 @@ const showStore = computed(() => props.activePage !== "settings" && routePermiss
 .page-title{span{color:var(--text-muted);font-size:10px}h2{margin:3px 0 0;color:var(--text);font-size:17px}}
 .header-actions{display:flex;align-items:center;gap:9px}.clock{display:flex;align-items:center;gap:9px;padding-right:10px;i{color:#6957e8;font-size:18px;font-style:normal}div{display:grid}b{color:var(--text);font-size:12px;font-variant-numeric:tabular-nums}small{color:var(--text-muted);font-size:9px}}
 .tool-button{height:36px;border:1px solid var(--border);border-radius:9px;background:var(--surface-raised);color:var(--text-secondary);cursor:pointer;&:hover{border-color:#6957e8;color:#6957e8}}.language{display:flex;align-items:center;gap:7px;padding:0 11px;font-size:10px;span{display:grid;width:20px;height:20px;place-items:center;border-radius:6px;background:#6957e8;color:white;font-size:9px}}.theme{width:36px;font-size:16px}.divider{width:1px;height:30px;margin:0 3px;background:var(--border)}
-.theme-menu{position:relative;padding:8px 0}.theme-popover{position:absolute;width:150px;right:0;top:calc(100% - 3px);display:grid;gap:3px;padding:7px;border:1px solid var(--border);border-radius:12px;background:var(--surface);box-shadow:0 16px 38px rgb(30 35 68 / 18%);opacity:0;visibility:hidden;transform:translateY(-6px);transition:.18s}.theme-menu:hover .theme-popover,.theme-menu:focus-within .theme-popover{opacity:1;visibility:visible;transform:translateY(0)}.theme-popover button{display:grid;grid-template-columns:24px 1fr 16px;align-items:center;gap:7px;padding:9px;border:0;border-radius:8px;background:transparent;color:var(--text-secondary);text-align:left;cursor:pointer}.theme-popover button:hover,.theme-popover button.active{background:var(--accent-soft);color:var(--accent)}.theme-popover button span{font-size:15px;text-align:center}.theme-popover button b{font-size:11px}.theme-popover button i{visibility:hidden;font-style:normal}.theme-popover button.active i{visibility:visible}
 .profile-menu{position:relative;padding:8px 0}.profile{display:flex;align-items:center;gap:9px;padding:0;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer}.profile-copy{display:grid}.profile b{max-width:130px;overflow:hidden;color:var(--text);font-size:11px;text-overflow:ellipsis;white-space:nowrap}.profile small{color:var(--text-muted);font-size:9px}.profile em{color:var(--text-muted);font-size:12px;font-style:normal}.avatar{position:relative;display:grid;width:36px;height:36px;place-items:center;border-radius:11px;background:linear-gradient(145deg,#6957e8,#a76fd9);color:white;font-size:13px;font-weight:700}.avatar i{position:absolute;width:8px;height:8px;right:-1px;bottom:-1px;border:2px solid var(--surface);border-radius:50%;background:#27a979}.avatar.small{width:34px;height:34px;border-radius:10px}
 .profile-popover{position:absolute;width:260px;right:0;top:calc(100% - 3px);padding:8px;border:1px solid var(--border);border-radius:13px;background:var(--surface);box-shadow:0 18px 46px rgb(30 35 68 / 18%);opacity:0;visibility:hidden;transform:translateY(-6px);transition:.18s}.profile-menu:hover .profile-popover,.profile-menu:focus-within .profile-popover{opacity:1;visibility:visible;transform:translateY(0)}.account-summary{display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid var(--border);margin-bottom:6px}.account-summary div{display:grid;min-width:0}.account-summary b{overflow:hidden;color:var(--text);font-size:12px;text-overflow:ellipsis}.account-summary small{color:var(--text-muted);font-size:10px}.profile-popover>button{display:grid;width:100%;grid-template-columns:28px 1fr;align-items:center;gap:8px;padding:10px;border:0;border-radius:9px;background:transparent;color:var(--text-secondary);text-align:left;cursor:pointer}.profile-popover>button:hover{background:var(--surface-raised);color:var(--accent)}.profile-popover>button>span{display:grid;width:28px;height:28px;place-items:center;border-radius:8px;background:var(--accent-soft);color:var(--accent)}.profile-popover>button div{display:grid;gap:2px}.profile-popover>button b{font-size:11px}.profile-popover>button small{color:var(--text-muted);font-size:9px}.profile-popover>.logout-entry{border-top:1px solid var(--border);margin-top:5px;border-radius:0;color:var(--danger)}
 @media(max-width:930px){.clock{display:none}.header{padding:0 17px}}@media(max-width:620px){.page-title span,.language,.profile-copy,.profile em,.divider{display:none}.header-actions{gap:4px}.profile-popover{right:-4px}}
