@@ -27,7 +27,7 @@ const filteredMembers = computed(() => members.value.filter((member) => {
     && (roleFilter.value === "ALL" || member.role === roleFilter.value)
     && (routeFilter.value === "ALL" || member.routePermissions.includes(routeFilter.value));
 }));
-const tableRows = computed(() => filteredMembers.value.map((member) => ({ id: member.id, member, role: member.role, status: member.isActive, permissions: member.routePermissions, createdAt: member.createdAt, actions: member.id })));
+const tableRows = computed(() => filteredMembers.value.map((member) => ({ id: member.id, member, role: member.role, status: member.isActive ? "启用" : "停用", permissions: member.routePermissions, createdAt: member.createdAt, actions: member.id })));
 function memberFromRow(row: Record<string, unknown>) { return row.member as MerchantMemberView; }
 const form = reactive({ name: "", slug: "", logoFileId: "", bannerFileId: "", description: "", customerServiceEmail: "", customerServicePhone: "", isOpen: true, returnAddress: { recipient: "", phone: "", country: "中国", province: "", city: "", district: "", addressLine: "", postalCode: "" } });
 
