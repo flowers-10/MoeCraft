@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted } from "vue";
-import { UiButton, UiPageContainer, UiPageHeader, UiTable, type UiTableColumn } from "@moecraft/ui";
+import { UiButton, UiPageContainer, UiPageHeader, UiTable, UiToast, type UiTableColumn } from "@moecraft/ui";
 import type { AdminButtonPermission, ProductStatus } from "@moecraft/shared";
 import { useLocale } from "../../../i18n";
 import ProductDraftDrawer from "./components/ProductDraftDrawer.vue";
@@ -45,7 +45,7 @@ onMounted(state.load);
     <UiPageHeader eyebrow="PRODUCT STUDIO" :title="t('products.title')" :description="t('products.subtitle')">
       <template #actions><UiButton v-if="canManage()" @click="state.create">＋ {{ t('products.newDraft') }}</UiButton></template>
     </UiPageHeader>
-    <p v-if="state.error.value" class="error">{{ state.error.value }}</p>
+    <UiToast :message="state.error.value" tone="error" @close="state.error.value = ''" />
     <section class="panel">
       <div class="filters">
         <input v-model="state.keyword.value" :placeholder="t('products.searchPlaceholder')">
