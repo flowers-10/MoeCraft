@@ -20,7 +20,17 @@ async function refresh() {
 }
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}) {
-  const execute = (token: string | null) => fetch(`${API_BASE_URL}${path}`, { ...init, signal: init.signal ?? AbortSignal.timeout(15_000), headers: { "Content-Type": "application/json", Authorization: token ? `Bearer ${token}` : "", "X-Request-Id": crypto.randomUUID(), "X-Locale": localStorage.getItem("mc-locale") ?? "zh-CN", "X-Timezone": Intl.DateTimeFormat().resolvedOptions().timeZone, ...init.headers } });
+  const execute = (token: string | null) => {
+    const headers = new Headers(init.headers);
+    const isFormData = typeof FormData !== "undefined" && init.body instanceof FormData;
+    if (isFormData) headers.delete("Content-Type");
+    else if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+    headers.set("X-Request-Id", crypto.randomUUID());
+    headers.set("X-Locale", localStorage.getItem("mc-locale") ?? "zh-CN");
+    headers.set("X-Timezone", Intl.DateTimeFormat().resolvedOptions().timeZone);
+    return fetch(`${API_BASE_URL}${path}`, { ...init, signal: init.signal ?? AbortSignal.timeout(15_000), headers });
+  };
   let response = await execute(sessionStorage.getItem("mc-admin-token"));
   if (response.status === 401) { const token = await refresh(); if (token) response = await execute(token); }
   if (!response.ok) {
@@ -31,4 +41,11 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}) {
   if (!body) return null as T;
   const envelope = JSON.parse(body) as ApiResponse<T>;
   return envelope.resultData;
+}
+
+export async function uploadFile<T = { id: string }>(purpose: string, file: File) {
+  const formData = new FormData();
+  formData.append("purpose", purpose);
+  formData.append("file", file);
+  return apiRequest<T>("/files", { method: "POST", body: formData });
 }

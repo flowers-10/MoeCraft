@@ -2,7 +2,7 @@
 import { computed, ref } from "vue";
 import { UiButton, UiField, UiFileUpload, UiForm, UiFormSection, UiInput, UiSelect, UiTextarea, type UiFormRules } from "@moecraft/ui";
 import type { CatalogOverview, ProductDraftInput, ProductReviewEventView, ProductStatus } from "@moecraft/shared";
-import { apiRequest } from "../../../../api";
+import { uploadFile } from "../../../../api";
 import { useLocale } from "../../../../i18n";
 import { productStatusKeys } from "../productI18n";
 
@@ -50,7 +50,7 @@ async function registerFile(index: number, file: File) {
   uploadingIndex.value = index;
   delete uploadErrors.value[index];
   try {
-    const asset = await apiRequest<{ id: string }>("/files", { method: "POST", body: JSON.stringify({ purpose: "product-media", fileName: file.name, mimeType: file.type, sizeBytes: file.size }) });
+    const asset = await uploadFile<{ id: string }>("product-media", file);
     const media = props.modelValue.media[index];
     if (!media) return;
     media.fileId = asset.id;
