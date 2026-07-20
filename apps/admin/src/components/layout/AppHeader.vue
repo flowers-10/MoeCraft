@@ -17,7 +17,7 @@ const timer = window.setInterval(() => { now.value = new Date(); }, 1000);
 onBeforeUnmount(() => window.clearInterval(timer));
 
 const pageKeys: Record<string, MessageKey> = {
-  overview: "nav.overview", onboarding: "nav.onboarding", productReviews:"nav.productReviews", products: "nav.products",
+  overview: "nav.overview", onboarding: "nav.onboarding", myOnboarding: "nav.onboarding", productReviews:"nav.productReviews", products: "nav.products",
   inventory: "nav.inventory", orders: "nav.orders", afterSales: "nav.afterSales",
   members: "nav.members", reports: "nav.reports", settings: "nav.settings",
 };
@@ -52,7 +52,7 @@ const showStore = computed(() => isMerchant.value);
         </button>
         <div class="profile-popover">
           <div class="account-summary"><span class="avatar small">{{ initials }}</span><div><b>{{ user?.displayName || user?.username }}</b><small>@{{ user?.username }}</small></div></div>
-          <button v-if="showOnboarding" type="button" @click="$emit('navigate', 'onboarding')"><span>◇</span><div><b>{{ t('header.onboardingRecord') }}</b><small>{{ t('header.onboardingRecordHint') }}</small></div></button>
+          <button v-if="showOnboarding" type="button" @click="$emit('navigate', 'myOnboarding')"><span>◇</span><div><b>{{ t('header.onboardingRecord') }}</b><small>{{ t('header.onboardingRecordHint') }}</small></div></button>
           <button v-if="showStore" type="button" @click="$emit('navigate', 'settings')"><span>⌂</span><div><b>{{ t('header.storeProfile') }}</b><small>{{ t('header.storeProfileHint') }}</small></div></button>
           <button class="logout-entry" type="button" @click="$emit('logout')"><span>→</span><div><b>{{ t('header.logout') }}</b></div></button>
         </div>
