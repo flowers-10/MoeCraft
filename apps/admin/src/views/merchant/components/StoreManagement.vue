@@ -3,14 +3,14 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { ADMIN_BUTTON_PERMISSIONS, MERCHANT_STAFF_ROUTE_PERMISSIONS, type AdminButtonPermission, type AdminRoutePermission, type MerchantMemberView, type StoreProfileView, type UserRole } from "@moecraft/shared";
 import { UiTable, type UiTableColumn } from "@moecraft/ui";
 import { apiRequest } from "../../../api";
-import { useLocale } from "../../../i18n";
+import { useLocale, type MessageKey } from "../../../i18n";
 
 type DialogMode = "create" | "view" | "edit" | null;
 const props = withDefaults(defineProps<{ roles?: UserRole[]; buttonPermissions?: AdminButtonPermission[]; section: "store" | "team" }>(), {
   roles: () => [],
   buttonPermissions: () => []
 });
-const { t } = useLocale();
+const { locale, t } = useLocale();
 const loading = ref(true), busy = ref(false), message = ref(""), error = ref("");
 const members = ref<MerchantMemberView[]>([]);
 const dialogMode = ref<DialogMode>(null);
@@ -21,17 +21,53 @@ const can = (key: AdminButtonPermission) => isOwner.value || props.buttonPermiss
 const staff = reactive({ username: "", displayName: "", password: "", routePermissions: ["system.overview"] as AdminRoutePermission[], buttonPermissions: [] as AdminButtonPermission[] });
 const routeOptions = [...MERCHANT_STAFF_ROUTE_PERMISSIONS];
 const buttonOptions = ADMIN_BUTTON_PERMISSIONS.filter((key) => key !== "products.review");
-const routeLabels: Record<AdminRoutePermission, string> = { "system.overview": "系统总览", "platform.onboarding": "商家入驻", "platform.catalog": "目录资料", "platform.productReview":"商品审核", "merchant.store": "店铺资料", "merchant.team": "成员管理", "commerce.products": "商品管理", "commerce.inventory": "库存管理", "commerce.orders": "订单中心", "commerce.afterSales": "售后服务", "commerce.reports": "数据报表" };
-const buttonLabels: Record<AdminButtonPermission, string> = { "store.profile.edit": "编辑店铺资料", "team.staff.create": "创建员工账号", "team.staff.permissions": "编辑员工权限", "team.staff.remove": "停用员工账号", "products.manage": "管理商品", "products.submit":"提交商品审核", "products.review":"审核商品", "inventory.adjust": "调整库存", "orders.manage": "处理订单", "afterSales.manage": "处理售后", "reports.view": "查看报表" };
-const memberColumns: UiTableColumn[] = [{ key: "member", label: "成员", width: "23%" }, { key: "role", label: "角色", width: "9%" }, { key: "status", label: "状态", width: "9%" }, { key: "permissions", label: "页面权限", width: "22%" }, { key: "createdAt", label: "加入时间", width: "12%" }, { key: "actions", label: "操作", width: "25%", align: "right" }];
+const routeLabelKeys: Record<AdminRoutePermission, MessageKey> = {
+  "system.overview": "nav.overview",
+  "platform.onboarding": "nav.onboarding",
+  "platform.catalog": "nav.catalog",
+  "platform.productReview": "nav.productReviews",
+  "merchant.store": "nav.storeProfile",
+  "merchant.team": "nav.members",
+  "commerce.products": "nav.products",
+  "commerce.inventory": "nav.inventory",
+  "commerce.orders": "nav.orders",
+  "commerce.afterSales": "nav.afterSales",
+  "commerce.reports": "nav.reports"
+};
+const buttonLabelKeys: Record<AdminButtonPermission, MessageKey> = {
+  "store.profile.edit": "permission.button.storeProfileEdit",
+  "team.staff.create": "permission.button.staffCreate",
+  "team.staff.permissions": "permission.button.staffPermissions",
+  "team.staff.remove": "permission.button.staffRemove",
+  "products.manage": "permission.button.productsManage",
+  "products.submit": "permission.button.productsSubmit",
+  "products.review": "permission.button.productsReview",
+  "inventory.adjust": "permission.button.inventoryAdjust",
+  "orders.manage": "permission.button.ordersManage",
+  "afterSales.manage": "permission.button.afterSalesManage",
+  "reports.view": "permission.button.reportsView"
+};
+const memberColumns = computed<UiTableColumn[]>(() => [
+  { key: "member", label: t("team.columnMember"), width: "23%" },
+  { key: "role", label: t("team.columnRole"), width: "9%" },
+  { key: "status", label: t("team.columnStatus"), width: "9%" },
+  { key: "permissions", label: t("team.columnPermissions"), width: "22%" },
+  { key: "createdAt", label: t("team.columnJoined"), width: "12%" },
+  { key: "actions", label: t("team.columnActions"), width: "25%", align: "right" }
+]);
 const filteredMembers = computed(() => members.value.filter((member) => {
   const term = keyword.value.trim().toLowerCase();
   return (!term || member.username.toLowerCase().includes(term) || member.displayName.toLowerCase().includes(term))
     && (roleFilter.value === "ALL" || member.role === roleFilter.value)
     && (routeFilter.value === "ALL" || member.routePermissions.includes(routeFilter.value));
 }));
-const tableRows = computed(() => filteredMembers.value.map((member) => ({ id: member.id, member, role: member.role, status: member.isActive ? "启用" : "停用", permissions: member.routePermissions, createdAt: member.createdAt, actions: member.id })));
+const tableRows = computed(() => filteredMembers.value.map((member) => ({ id: member.id, member, role: member.role, status: t(member.isActive ? "team.active" : "team.inactive"), permissions: member.routePermissions, createdAt: member.createdAt, actions: member.id })));
 function memberFromRow(row: Record<string, unknown>) { return row.member as MerchantMemberView; }
+function routeLabel(key: AdminRoutePermission) { return t(routeLabelKeys[key]); }
+function buttonLabel(key: AdminButtonPermission) { return t(buttonLabelKeys[key]); }
+function roleLabel(role: MerchantMemberView["role"]) { return t(role === "OWNER" ? "store.owner" : "store.staff"); }
+function formatDate(value: string) { return new Intl.DateTimeFormat(locale.value).format(new Date(value)); }
+const dialogTitleKey = computed<MessageKey>(() => dialogMode.value === "create" ? "team.dialogNew" : dialogMode.value === "edit" ? "team.dialogEdit" : "team.dialogView");
 const form = reactive({ name: "", slug: "", logoFileId: "", bannerFileId: "", description: "", customerServiceEmail: "", customerServicePhone: "", isOpen: true, returnAddress: { recipient: "", phone: "", country: "中国", province: "", city: "", district: "", addressLine: "", postalCode: "" } });
 
 function feedback(ok: string) { message.value = ok; error.value = ""; }
@@ -47,8 +83,8 @@ async function load() { loading.value = true; error.value = ""; try { if (props.
 async function save() { busy.value = true; try { const payload = { name: form.name, slug: form.slug, logoFileId: form.logoFileId || undefined, bannerFileId: form.bannerFileId || undefined, description: form.description || undefined, customerServiceEmail: form.customerServiceEmail || undefined, customerServicePhone: form.customerServicePhone || undefined, isOpen: form.isOpen, returnAddress: { ...form.returnAddress, postalCode: form.returnAddress.postalCode || undefined } }; await apiRequest("/merchant/store", { method: "PUT", body: JSON.stringify(payload) }); feedback(t("store.saved")); } catch { fail(); } finally { busy.value = false; } }
 async function createStaff() { busy.value = true; try { await apiRequest("/merchant/staff-accounts", { method: "POST", body: JSON.stringify(staff) }); await loadTeam(); closeDialog(); feedback(t("store.staffCreated")); } catch { fail(); } finally { busy.value = false; } }
 async function saveAccess() { if (!selected.value) return; busy.value = true; try { await apiRequest(`/merchant/members/${selected.value.id}/access`, { method: "PUT", body: JSON.stringify({ routePermissions: selected.value.routePermissions, buttonPermissions: selected.value.buttonPermissions }) }); await loadTeam(); dialogMode.value = null; feedback(t("store.accessSaved")); } catch { fail(); } finally { busy.value = false; } }
-async function setStatus(member: MerchantMemberView) { const next = !member.isActive; if (!window.confirm(`确认${next ? "启用" : "停用"}员工“${member.displayName}”吗？${next ? "" : "该账号将立即退出登录。"}`)) return; try { await apiRequest(`/merchant/members/${member.id}/status`, { method: "PATCH", body: JSON.stringify({ isActive: next }) }); await loadTeam(); feedback(next ? "员工账号已启用。" : "员工账号已停用。"); } catch { fail(); } }
-async function remove(member: MerchantMemberView) { if (!window.confirm(`确认永久删除员工“${member.displayName}”吗？该员工将从店铺成员中移除，此操作不可撤销。`)) return; try { await apiRequest(`/merchant/members/${member.id}`, { method: "DELETE" }); await loadTeam(); feedback("员工账号已删除。"); } catch { fail(); } }
+async function setStatus(member: MerchantMemberView) { const next = !member.isActive; if (!window.confirm(t(next ? "team.confirmEnable" : "team.confirmDisable", { name: member.displayName }))) return; try { await apiRequest(`/merchant/members/${member.id}/status`, { method: "PATCH", body: JSON.stringify({ isActive: next }) }); await loadTeam(); feedback(t(next ? "team.enabled" : "team.disabled")); } catch { fail(); } }
+async function remove(member: MerchantMemberView) { if (!window.confirm(t("team.confirmDelete", { name: member.displayName }))) return; try { await apiRequest(`/merchant/members/${member.id}`, { method: "DELETE" }); await loadTeam(); feedback(t("team.deleted")); } catch { fail(); } }
 onMounted(load);
 </script>
 
@@ -56,12 +92,12 @@ onMounted(load);
   <section class="store-page content-scroll">
     <div class="page-shell">
       <header class="hero">
-        <div><span>STORE OPERATIONS</span><h1>{{ t(props.section === 'team' ? 'store.members' : 'store.profile') }}</h1><p>{{ t('store.subtitle') }}</p></div>
+        <div><span>STORE OPERATIONS</span><h1>{{ t(props.section === 'team' ? 'store.members' : 'store.profile') }}</h1><p>{{ t(props.section === 'team' ? 'team.subtitle' : 'store.subtitle') }}</p></div>
         <label v-if="props.section === 'store'" class="switch"><input v-model="form.isOpen" :disabled="!can('store.profile.edit')" type="checkbox"><i /><b>{{ t(form.isOpen ? 'store.open' : 'store.closed') }}</b></label>
         <button v-else-if="can('team.staff.create')" class="primary add-button" type="button" @click="openCreate">＋ {{ t('store.createStaff') }}</button>
       </header>
       <p v-if="message || error" class="feedback" :class="{ error }">{{ message || error }}</p>
-      <div v-if="loading" class="loading">{{ t('common.loading') }}</div>
+      <div v-if="loading" class="loading">{{ t(props.section === 'team' ? 'team.loading' : 'common.loading') }}</div>
 
       <form v-else-if="props.section === 'store'" class="panel profile" @submit.prevent="save">
         <h2>{{ t('store.profile') }}</h2>
@@ -72,14 +108,14 @@ onMounted(load);
       </form>
 
       <div v-else class="team-workspace">
-        <section class="filters panel"><div class="search"><span>⌕</span><input v-model="keyword" placeholder="搜索员工姓名或登录账号"></div><select v-model="roleFilter"><option value="ALL">全部角色</option><option value="OWNER">店主</option><option value="STAFF">员工</option></select><select v-model="routeFilter"><option value="ALL">全部页面权限</option><option v-for="key in routeOptions" :key="key" :value="key">{{ routeLabels[key] }}</option></select><button type="button" @click="keyword = ''; roleFilter = 'ALL'; routeFilter = 'ALL'">重置</button></section>
-        <section class="panel member-list"><div class="list-head"><div><h2>{{ t('store.members') }}</h2><p>共 {{ filteredMembers.length }} 位成员</p></div></div><UiTable :columns="memberColumns" :rows="tableRows" empty-text="没有符合筛选条件的成员"><template #cell-member="{ row }"><div class="identity"><span>{{ memberFromRow(row).displayName.slice(0, 1) }}</span><div><b>{{ memberFromRow(row).displayName }}</b><small>@{{ memberFromRow(row).username }}</small></div></div></template><template #cell-role="{ row }"><em :class="memberFromRow(row).role.toLowerCase()">{{ memberFromRow(row).role === 'OWNER' ? '店主' : '员工' }}</em></template><template #cell-permissions="{ row }"><div class="permission-summary"><template v-if="memberFromRow(row).role === 'OWNER'"><i>全部权限</i></template><template v-else-if="memberFromRow(row).routePermissions.length"><i v-for="key in memberFromRow(row).routePermissions.slice(0, 2)" :key="key">{{ routeLabels[key] }}</i><i v-if="memberFromRow(row).routePermissions.length > 2">+{{ memberFromRow(row).routePermissions.length - 2 }}</i></template><span v-else>未分配</span></div></template><template #cell-createdAt="{ row }">{{ new Date(memberFromRow(row).createdAt).toLocaleDateString() }}</template><template #cell-actions="{ row }"><div class="actions"><button type="button" @click="openMember(memberFromRow(row), 'view')">查看</button><button v-if="memberFromRow(row).role === 'STAFF' && can('team.staff.permissions')" type="button" @click="openMember(memberFromRow(row), 'edit')">编辑</button><button v-if="memberFromRow(row).role === 'STAFF' && can('team.staff.remove')" type="button" @click="setStatus(memberFromRow(row))">{{ memberFromRow(row).isActive ? '停用' : '启用' }}</button><button v-if="memberFromRow(row).role === 'STAFF' && can('team.staff.remove')" class="danger" type="button" @click="remove(memberFromRow(row))">删除</button></div></template></UiTable></section>
+        <section class="filters panel"><div class="search"><span>⌕</span><input v-model="keyword" :placeholder="t('team.searchPlaceholder')"></div><select v-model="roleFilter"><option value="ALL">{{ t('team.allRoles') }}</option><option value="OWNER">{{ t('store.owner') }}</option><option value="STAFF">{{ t('store.staff') }}</option></select><select v-model="routeFilter"><option value="ALL">{{ t('team.allRoutes') }}</option><option v-for="key in routeOptions" :key="key" :value="key">{{ routeLabel(key) }}</option></select><button type="button" @click="keyword = ''; roleFilter = 'ALL'; routeFilter = 'ALL'">{{ t('team.reset') }}</button></section>
+        <section class="panel member-list"><div class="list-head"><div><h2>{{ t('store.members') }}</h2><p>{{ t('team.memberCount', { count: filteredMembers.length }) }}</p></div></div><UiTable :columns="memberColumns" :rows="tableRows" :empty-text="t('team.empty')"><template #cell-member="{ row }"><div class="identity"><span>{{ memberFromRow(row).displayName.slice(0, 1) }}</span><div><b>{{ memberFromRow(row).displayName }}</b><small>@{{ memberFromRow(row).username }}</small></div></div></template><template #cell-role="{ row }"><em :class="memberFromRow(row).role.toLowerCase()">{{ roleLabel(memberFromRow(row).role) }}</em></template><template #cell-permissions="{ row }"><div class="permission-summary"><template v-if="memberFromRow(row).role === 'OWNER'"><i>{{ t('team.allPermissions') }}</i></template><template v-else-if="memberFromRow(row).routePermissions.length"><i v-for="key in memberFromRow(row).routePermissions.slice(0, 2)" :key="key">{{ routeLabel(key) }}</i><i v-if="memberFromRow(row).routePermissions.length > 2">+{{ memberFromRow(row).routePermissions.length - 2 }}</i></template><span v-else>{{ t('team.unassigned') }}</span></div></template><template #cell-createdAt="{ row }">{{ formatDate(memberFromRow(row).createdAt) }}</template><template #cell-actions="{ row }"><div class="actions"><button type="button" @click="openMember(memberFromRow(row), 'view')">{{ t('team.view') }}</button><button v-if="memberFromRow(row).role === 'STAFF' && can('team.staff.permissions')" type="button" @click="openMember(memberFromRow(row), 'edit')">{{ t('team.edit') }}</button><button v-if="memberFromRow(row).role === 'STAFF' && can('team.staff.remove')" type="button" @click="setStatus(memberFromRow(row))">{{ t(memberFromRow(row).isActive ? 'team.disable' : 'team.enable') }}</button><button v-if="memberFromRow(row).role === 'STAFF' && can('team.staff.remove')" class="danger" type="button" @click="remove(memberFromRow(row))">{{ t('team.delete') }}</button></div></template></UiTable></section>
       </div>
     </div>
 
-    <Teleport to="body"><div v-if="dialogMode" class="modal-mask" @mousedown.self="closeDialog"><section class="modal" role="dialog" aria-modal="true"><header><div><small>{{ dialogMode === 'create' ? 'NEW STAFF' : dialogMode === 'edit' ? 'EDIT ACCESS' : 'MEMBER DETAIL' }}</small><h2>{{ dialogMode === 'create' ? '新增员工账号' : dialogMode === 'edit' ? '编辑员工权限' : '查看成员' }}</h2></div><button type="button" aria-label="关闭" @click="closeDialog">×</button></header>
-      <form v-if="dialogMode === 'create'" @submit.prevent="createStaff"><div class="dialog-grid"><label><span>{{ t('store.staffUsername') }}</span><input v-model="staff.username" required minlength="3" autocomplete="off"></label><label><span>{{ t('store.staffDisplayName') }}</span><input v-model="staff.displayName" required></label><label class="full"><span>{{ t('store.staffPassword') }}</span><input v-model="staff.password" required minlength="12" type="password" autocomplete="new-password"></label></div><div class="permission-block"><h3>{{ t('store.routeAccess') }}</h3><p>决定员工登录后可以看到哪些菜单和页面</p><div class="check-grid"><label v-for="key in routeOptions" :key="key"><input v-model="staff.routePermissions" type="checkbox" :value="key"><span><b>{{ routeLabels[key] }}</b><small>{{ key }}</small></span></label></div></div><div class="permission-block"><h3>{{ t('store.buttonAccess') }}</h3><p>决定员工在已授权页面中可以执行哪些操作</p><div class="check-grid"><label v-for="key in buttonOptions" :key="key"><input v-model="staff.buttonPermissions" type="checkbox" :value="key"><span><b>{{ buttonLabels[key] }}</b><small>{{ key }}</small></span></label></div></div><footer><button type="button" @click="closeDialog">取消</button><button class="primary" :disabled="busy">{{ busy ? '正在创建…' : t('store.createStaff') }}</button></footer></form>
-      <div v-else-if="selected" class="member-dialog"><div class="member-hero"><span>{{ selected.displayName.slice(0, 1) }}</span><div><h3>{{ selected.displayName }}</h3><p>@{{ selected.username }} · {{ selected.role === 'OWNER' ? '店主' : '员工' }}</p></div></div><div class="permission-block"><h3>{{ t('store.routeAccess') }}</h3><div class="check-grid"><label v-for="key in routeOptions" :key="key" :class="{ disabled: dialogMode === 'view' || selected.role === 'OWNER' }"><input v-model="selected.routePermissions" type="checkbox" :value="key" :disabled="dialogMode === 'view' || selected.role === 'OWNER'"><span><b>{{ routeLabels[key] }}</b><small>{{ key }}</small></span></label></div></div><div class="permission-block"><h3>{{ t('store.buttonAccess') }}</h3><div class="check-grid"><label v-for="key in buttonOptions" :key="key" :class="{ disabled: dialogMode === 'view' || selected.role === 'OWNER' }"><input v-model="selected.buttonPermissions" type="checkbox" :value="key" :disabled="dialogMode === 'view' || selected.role === 'OWNER'"><span><b>{{ buttonLabels[key] }}</b><small>{{ key }}</small></span></label></div></div><footer><button type="button" @click="closeDialog">关闭</button><button v-if="dialogMode === 'edit'" class="primary" :disabled="busy" type="button" @click="saveAccess">{{ busy ? '正在保存…' : t('store.saveAccess') }}</button></footer></div>
+    <Teleport to="body"><div v-if="dialogMode" class="modal-mask" @mousedown.self="closeDialog"><section class="modal" role="dialog" aria-modal="true"><header><div><small>{{ dialogMode === 'create' ? 'NEW STAFF' : dialogMode === 'edit' ? 'EDIT ACCESS' : 'MEMBER DETAIL' }}</small><h2>{{ t(dialogTitleKey) }}</h2></div><button type="button" :aria-label="t('team.closeAria')" @click="closeDialog">×</button></header>
+      <form v-if="dialogMode === 'create'" @submit.prevent="createStaff"><div class="dialog-grid"><label><span>{{ t('store.staffUsername') }}</span><input v-model="staff.username" required minlength="3" autocomplete="off"></label><label><span>{{ t('store.staffDisplayName') }}</span><input v-model="staff.displayName" required></label><label class="full"><span>{{ t('store.staffPassword') }}</span><input v-model="staff.password" required minlength="12" type="password" autocomplete="new-password"></label></div><div class="permission-block"><h3>{{ t('store.routeAccess') }}</h3><p>{{ t('team.routeAccessHint') }}</p><div class="check-grid"><label v-for="key in routeOptions" :key="key"><input v-model="staff.routePermissions" type="checkbox" :value="key"><span><b>{{ routeLabel(key) }}</b><small>{{ key }}</small></span></label></div></div><div class="permission-block"><h3>{{ t('store.buttonAccess') }}</h3><p>{{ t('team.buttonAccessHint') }}</p><div class="check-grid"><label v-for="key in buttonOptions" :key="key"><input v-model="staff.buttonPermissions" type="checkbox" :value="key"><span><b>{{ buttonLabel(key) }}</b><small>{{ key }}</small></span></label></div></div><footer><button type="button" @click="closeDialog">{{ t('team.cancel') }}</button><button class="primary" :disabled="busy">{{ busy ? t('team.creating') : t('store.createStaff') }}</button></footer></form>
+      <div v-else-if="selected" class="member-dialog"><div class="member-hero"><span>{{ selected.displayName.slice(0, 1) }}</span><div><h3>{{ selected.displayName }}</h3><p>@{{ selected.username }} · {{ roleLabel(selected.role) }}</p></div></div><div class="permission-block"><h3>{{ t('store.routeAccess') }}</h3><div class="check-grid"><label v-for="key in routeOptions" :key="key" :class="{ disabled: dialogMode === 'view' || selected.role === 'OWNER' }"><input v-model="selected.routePermissions" type="checkbox" :value="key" :disabled="dialogMode === 'view' || selected.role === 'OWNER'"><span><b>{{ routeLabel(key) }}</b><small>{{ key }}</small></span></label></div></div><div class="permission-block"><h3>{{ t('store.buttonAccess') }}</h3><div class="check-grid"><label v-for="key in buttonOptions" :key="key" :class="{ disabled: dialogMode === 'view' || selected.role === 'OWNER' }"><input v-model="selected.buttonPermissions" type="checkbox" :value="key" :disabled="dialogMode === 'view' || selected.role === 'OWNER'"><span><b>{{ buttonLabel(key) }}</b><small>{{ key }}</small></span></label></div></div><footer><button type="button" @click="closeDialog">{{ t('team.close') }}</button><button v-if="dialogMode === 'edit'" class="primary" :disabled="busy" type="button" @click="saveAccess">{{ busy ? t('team.saving') : t('store.saveAccess') }}</button></footer></div>
     </section></div></Teleport>
   </section>
 </template>
