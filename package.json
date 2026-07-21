@@ -12,6 +12,7 @@
     "check:migrations": "node scripts/check-migrations.mjs",
     "audit:check": "pnpm audit --audit-level high",
     "secrets:check": "node scripts/check-secrets.mjs",
+    "capacity:smoke": "node scripts/api-capacity-smoke.mjs",
     "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules"
   },
   "devDependencies": {

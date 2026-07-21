@@ -92,6 +92,8 @@ pnpm --filter @moecraft/api db:seed
 
 API 容器、staging 配置、迁移兼容门禁、备份恢复和回滚流程见 [发布说明](./docs/operations/release.md) 与 [数据库手册](./docs/runbooks/database-backup-restore.md)。
 
+安全、权限、政策草案和上线值班流程见 [威胁模型](./docs/security/threat-model.md)、[权限审查](./docs/security/permission-review.md)、[政策草案](./docs/legal/policy-drafts.md) 和 [G40 上线手册](./docs/operations/launch-readiness.md)。
+
 ## 当前边界
 
 - Storefront 仍是基础商城首页和目录聚合骨架，交易页面尚未实现。
