@@ -2,7 +2,7 @@
 
 ## 项目概览
 
-MoeCraft 是一个面向同人手办与周边商城的 `pnpm` + Turborepo Monorepo。
+MoeCraft 是一个面向同人二创与周边商城的 `pnpm` + Turborepo Monorepo。
 
 - `apps/storefront`：Nuxt 3 商城前台（`@moecraft/storefront`，端口 `3100`）
 - `apps/admin`：Vue 3 + Vite 运营后台（`@moecraft/admin`，端口 `3101`）
