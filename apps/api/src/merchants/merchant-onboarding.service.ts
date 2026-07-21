@@ -3,12 +3,7 @@ import type { MerchantApplicationStatus, MerchantApplicationView, PaginatedResul
 import { Prisma, type MerchantApplication } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import type { ReviewMerchantApplicationDto, SaveMerchantApplicationDto, SetMerchantStatusDto } from "./merchant-onboarding.dto";
-
-const TRANSITIONS: Record<MerchantApplicationStatus, readonly MerchantApplicationStatus[]> = {
-  DRAFT: ["SUBMITTED", "WITHDRAWN"], SUBMITTED: ["NEEDS_CHANGES", "APPROVED", "REJECTED", "WITHDRAWN"],
-  NEEDS_CHANGES: ["SUBMITTED", "WITHDRAWN"], APPROVED: [], REJECTED: [], WITHDRAWN: []
-};
-const canTransition = (from: MerchantApplicationStatus, to: MerchantApplicationStatus) => TRANSITIONS[from].includes(to);
+import { canTransitionMerchantApplication } from "./merchant-onboarding-workflow";
 const REVIEW_QUEUE_STATUSES: MerchantApplicationStatus[] = ["SUBMITTED", "NEEDS_CHANGES", "APPROVED", "REJECTED"];
 
 @Injectable()
@@ -43,7 +38,7 @@ export class MerchantOnboardingService {
 
   async submit(applicantId: string): Promise<MerchantApplicationView> {
     const application = await this.latestOwned(applicantId);
-    if (!canTransition(application.status, "SUBMITTED")) throw new BadRequestException("INVALID_APPLICATION_TRANSITION");
+    if (!canTransitionMerchantApplication(application.status, "SUBMITTED")) throw new BadRequestException("INVALID_APPLICATION_TRANSITION");
     if (!application.agreementAccepted || this.fileIds(application).length === 0) throw new BadRequestException("APPLICATION_INCOMPLETE");
     await this.validateFiles(applicantId, this.fileIds(application));
     return this.transition(application, applicantId, "SUBMITTED", "Application submitted", { submittedAt: new Date(), reviewComment: null });
@@ -51,7 +46,7 @@ export class MerchantOnboardingService {
 
   async withdraw(applicantId: string): Promise<MerchantApplicationView> {
     const application = await this.latestOwned(applicantId);
-    if (!canTransition(application.status, "WITHDRAWN")) throw new BadRequestException("INVALID_APPLICATION_TRANSITION");
+    if (!canTransitionMerchantApplication(application.status, "WITHDRAWN")) throw new BadRequestException("INVALID_APPLICATION_TRANSITION");
     return this.transition(application, applicantId, "WITHDRAWN", "Application withdrawn");
   }
 
@@ -70,7 +65,7 @@ export class MerchantOnboardingService {
     const application = await this.prisma.merchantApplication.findUnique({ where: { id } });
     if (!application) throw new NotFoundException("MERCHANT_APPLICATION_NOT_FOUND");
     const target: MerchantApplicationStatus = dto.decision === "APPROVE" ? "APPROVED" : dto.decision === "REJECT" ? "REJECTED" : "NEEDS_CHANGES";
-    if (!canTransition(application.status, target)) throw new BadRequestException("INVALID_APPLICATION_TRANSITION");
+    if (!canTransitionMerchantApplication(application.status, target)) throw new BadRequestException("INVALID_APPLICATION_TRANSITION");
     if (target !== "APPROVED" && !dto.comment?.trim()) throw new BadRequestException("REVIEW_COMMENT_REQUIRED");
 
     const result = await this.prisma.$transaction(async (tx) => {
