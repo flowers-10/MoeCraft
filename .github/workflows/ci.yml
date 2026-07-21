@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root-password
+          MYSQL_DATABASE: moecraft_shadow
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci-root-password --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      DATABASE_URL: mysql://root:ci-root-password@127.0.0.1:3306/moecraft
+      SHADOW_DATABASE_URL: mysql://root:ci-root-password@127.0.0.1:3306/moecraft_shadow
+      JWT_ACCESS_SECRET: ci-only-jwt-secret-that-is-never-used-outside-tests
+      JWT_ACCESS_EXPIRES_IN: 15m
+      CORS_ORIGINS: http://localhost:3100,http://localhost:3101
+      SERVICE_ENVIRONMENT: ci
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.13.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @moecraft/api db:generate
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm --filter @moecraft/api test
+      - run: pnpm --filter @moecraft/api test:typecheck
+      - run: pnpm build
+      - run: pnpm --filter @moecraft/api openapi:check
+      - run: pnpm check:migrations
+      - run: pnpm audit:check
+      - run: pnpm secrets:check

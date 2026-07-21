@@ -69,6 +69,10 @@ pnpm --filter @moecraft/admin dev
 pnpm --filter @moecraft/api dev
 pnpm --filter @moecraft/api test
 pnpm --filter @moecraft/api openapi:check
+pnpm format:check
+pnpm lint
+pnpm check:migrations
+pnpm secrets:check
 ```
 
 修改单个应用时应运行最小范围的 `typecheck` 或 `build`；跨包改动在根目录运行 `pnpm typecheck`，交付前按改动风险运行 `pnpm build`。
@@ -85,6 +89,8 @@ pnpm --filter @moecraft/api db:seed
 ```
 
 本地首次迁移前先创建 `moecraft` 数据库。Seed 是幂等的，但必须在本地 `.env` 中显式设置至少 12 位的 `SEED_ADMIN_PASSWORD`；仓库不提供默认管理员密码。`db:migrate` 只用于本地开发，部署环境使用已提交迁移的 `db:deploy`。
+
+API 容器、staging 配置、迁移兼容门禁、备份恢复和回滚流程见 [发布说明](./docs/operations/release.md) 与 [数据库手册](./docs/runbooks/database-backup-restore.md)。
 
 ## 当前边界
 

@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@moecraft/shared": "workspace:*",
-    "nuxt": "3.17.5"
+    "nuxt": "3.21.7"
   },
   "devDependencies": {
     "vue-tsc": "^2.2.12"

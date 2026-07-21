@@ -5,6 +5,8 @@ node_modules
 .output
 dist
 coverage
+backups/
+deploy/staging.env
 .env
 .env.*
 !.env.example

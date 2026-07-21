@@ -7,6 +7,11 @@
     "dev": "turbo run dev --parallel",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
+    "format:check": "node scripts/check-format.mjs",
+    "lint": "node scripts/check-static.mjs",
+    "check:migrations": "node scripts/check-migrations.mjs",
+    "audit:check": "pnpm audit --audit-level high",
+    "secrets:check": "node scripts/check-secrets.mjs",
     "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules"
   },
   "devDependencies": {

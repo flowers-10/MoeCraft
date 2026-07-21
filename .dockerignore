@@ -1,0 +1,15 @@
+.git
+.github
+.pnpm-store
+.turbo
+**/.turbo
+**/.nuxt
+**/.output
+**/dist
+**/node_modules
+**/.env
+**/.env.*
+!**/.env.example
+backups
+coverage
+.DS_Store
