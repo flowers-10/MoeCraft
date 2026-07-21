@@ -11,6 +11,7 @@ import { FilesService } from "../src/files/files.service";
 import { resolveApiErrorCode } from "../src/http/api-error-code";
 import { canTransitionMerchantApplication } from "../src/merchants/merchant-onboarding-workflow";
 import { ApiMetricsService } from "../src/observability/api-metrics.service";
+import { ensureTraceContext } from "../src/observability/trace-context";
 import { canTransitionProduct } from "../src/products/product-workflow";
 import { PrismaService } from "../src/prisma/prisma.service";
 
@@ -69,6 +70,20 @@ test("request metrics aggregate status buckets without route-level cardinality",
   assert.equal(snapshot.averageDurationMs, 20);
   assert.deepEqual(snapshot.statusBuckets, { "2xx": 1, "4xx": 1, "5xx": 1 });
   assert.ok(snapshot.uptimeSeconds >= 0);
+});
+
+test("trace context preserves valid upstream trace IDs and replaces invalid context", () => {
+  const firstRequest = { headers: { traceparent: "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01" } };
+  const firstHeaders: Record<string, string> = {};
+  const firstTraceId = ensureTraceContext(firstRequest, { setHeader: (name, value) => { firstHeaders[name] = value; } });
+  assert.equal(firstTraceId, "0123456789abcdef0123456789abcdef");
+  assert.match(firstHeaders.traceparent, /^00-0123456789abcdef0123456789abcdef-[0-9a-f]{16}-01$/);
+
+  const secondRequest = { headers: { traceparent: "invalid" } };
+  const secondHeaders: Record<string, string> = {};
+  const secondTraceId = ensureTraceContext(secondRequest, { setHeader: (name, value) => { secondHeaders[name] = value; } });
+  assert.match(secondTraceId, /^[0-9a-f]{32}$/);
+  assert.match(secondHeaders.traceparent, new RegExp(`^00-${secondTraceId}-[0-9a-f]{16}-01$`));
 });
 
 test("auth login issues a session for valid credentials", async () => {

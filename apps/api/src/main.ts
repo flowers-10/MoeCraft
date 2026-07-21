@@ -5,6 +5,7 @@ import { ConfigService } from "@nestjs/config";
 import { AppModule } from "./app.module";
 import type { AppEnvironment } from "./config/environment";
 import { StructuredLogger } from "./observability/structured-logger";
+import { setupOpenApi } from "./openapi/openapi";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -23,6 +24,7 @@ async function bootstrap() {
     credentials: true,
     origin: corsOrigins
   });
+  setupOpenApi(app);
   app.enableShutdownHooks();
 
   await app.listen(port);

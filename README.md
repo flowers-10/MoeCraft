@@ -34,6 +34,13 @@ GET http://localhost:3102/health
 
 预期返回 `status: "ok"` 和当前 ISO 时间。健康检查不依赖数据库等重量级外部服务。
 
+运行与契约入口：
+
+- `GET http://localhost:3102/readiness`：数据库就绪检查。
+- `GET http://localhost:3102/api/docs`：Swagger UI。
+- `GET http://localhost:3102/api/openapi.json`：运行时 OpenAPI JSON。
+- `GET http://localhost:3102/api/v1/metrics`：平台管理员可读的基础请求指标。
+
 ## 环境配置
 
 API 示例配置位于 `apps/api/.env.example`：
@@ -60,6 +67,8 @@ pnpm build
 pnpm --filter @moecraft/storefront dev
 pnpm --filter @moecraft/admin dev
 pnpm --filter @moecraft/api dev
+pnpm --filter @moecraft/api test
+pnpm --filter @moecraft/api openapi:check
 ```
 
 修改单个应用时应运行最小范围的 `typecheck` 或 `build`；跨包改动在根目录运行 `pnpm typecheck`，交付前按改动风险运行 `pnpm build`。
