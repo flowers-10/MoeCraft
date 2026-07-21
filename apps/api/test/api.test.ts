@@ -1,14 +1,16 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { BadRequestException, ForbiddenException, UnauthorizedException, type ExecutionContext } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, ServiceUnavailableException, UnauthorizedException, type ExecutionContext } from "@nestjs/common";
 import type { Reflector } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
+import { AppService } from "../src/app.service";
 import { AuthService } from "../src/auth/auth.service";
 import { AuthorizationGuard, assertMerchantScope, rolesHavePermissions, type RequestPrincipal } from "../src/auth/authorization";
 import { FilesService } from "../src/files/files.service";
 import { resolveApiErrorCode } from "../src/http/api-error-code";
 import { canTransitionMerchantApplication } from "../src/merchants/merchant-onboarding-workflow";
+import { ApiMetricsService } from "../src/observability/api-metrics.service";
 import { canTransitionProduct } from "../src/products/product-workflow";
 import { PrismaService } from "../src/prisma/prisma.service";
 
@@ -32,6 +34,42 @@ function createGuardContext(metadata: GuardMetadata, databaseUser: unknown, auth
   } as unknown as ExecutionContext;
   return { guard: new AuthorizationGuard(reflector, jwt, prisma), context, request };
 }
+
+test("health stays lightweight while readiness probes the database", async () => {
+  let probes = 0;
+  const prisma = { $queryRaw: async () => { probes += 1; } } as unknown as PrismaService;
+  const app = new AppService(prisma, new ApiMetricsService());
+
+  assert.equal(app.getHealth().status, "ok");
+  assert.equal(probes, 0);
+  const readiness = await app.getReadiness();
+  assert.equal(readiness.dependencies.database, "ok");
+  assert.equal(probes, 1);
+});
+
+test("readiness returns a stable unavailable error when the database probe fails", async () => {
+  const prisma = { $queryRaw: async () => { throw new Error("sensitive connection details"); } } as unknown as PrismaService;
+  const app = new AppService(prisma, new ApiMetricsService());
+
+  await assert.rejects(
+    () => app.getReadiness(),
+    (error: unknown) => error instanceof ServiceUnavailableException && error.message === "READINESS_FAILED"
+  );
+});
+
+test("request metrics aggregate status buckets without route-level cardinality", () => {
+  const metrics = new ApiMetricsService();
+  metrics.recordRequest(200, 10);
+  metrics.recordRequest(404, 20);
+  metrics.recordRequest(503, 30);
+
+  const snapshot = metrics.snapshot();
+  assert.equal(snapshot.requestsTotal, 3);
+  assert.equal(snapshot.errorsTotal, 1);
+  assert.equal(snapshot.averageDurationMs, 20);
+  assert.deepEqual(snapshot.statusBuckets, { "2xx": 1, "4xx": 1, "5xx": 1 });
+  assert.ok(snapshot.uptimeSeconds >= 0);
+});
 
 test("auth login issues a session for valid credentials", async () => {
   const passwordHash = await bcrypt.hash("correct-password", 4);

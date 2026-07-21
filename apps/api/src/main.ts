@@ -13,7 +13,10 @@ async function bootstrap() {
   const port = config.get("PORT", { infer: true });
   const corsOrigins = config.get("CORS_ORIGINS", { infer: true });
 
-  app.setGlobalPrefix("api/v1", { exclude: [{ path: "health", method: RequestMethod.GET }] });
+  app.setGlobalPrefix("api/v1", { exclude: [
+    { path: "health", method: RequestMethod.GET },
+    { path: "readiness", method: RequestMethod.GET }
+  ] });
   app.useGlobalPipes(new ValidationPipe({ forbidNonWhitelisted: true, transform: true, whitelist: true }));
 
   app.enableCors({

@@ -6,6 +6,13 @@ export type AppHealth = Readonly<{
   time: IsoDateTime;
 }>;
 
+export type AppReadiness = Readonly<{
+  name: string;
+  status: "ok";
+  time: IsoDateTime;
+  dependencies: Readonly<{ database: "ok" }>;
+}>;
+
 export type ApiResponse<Data> = Readonly<{
   code: 0;
   message: "OK";
