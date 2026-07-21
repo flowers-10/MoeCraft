@@ -51,6 +51,14 @@ function parseOrigins(value: unknown): string[] {
   return origins;
 }
 
+function parseJwtDuration(environment: Record<string, unknown>): string {
+  const value = requireValue(environment, "JWT_ACCESS_EXPIRES_IN");
+  if (!/^\d+(?:ms|s|m|h|d|w|y)$/.test(value)) {
+    throw new Error("Environment variable JWT_ACCESS_EXPIRES_IN must be a duration such as 15m or 8h");
+  }
+  return value;
+}
+
 export function validateEnvironment(environment: Record<string, unknown>): AppEnvironment {
   const databaseUrl = requireValue(environment, "DATABASE_URL");
   const jwtAccessSecret = requireValue(environment, "JWT_ACCESS_SECRET");
@@ -66,7 +74,7 @@ export function validateEnvironment(environment: Record<string, unknown>): AppEn
   return {
     DATABASE_URL: databaseUrl,
     JWT_ACCESS_SECRET: jwtAccessSecret,
-    JWT_ACCESS_EXPIRES_IN: requireValue(environment, "JWT_ACCESS_EXPIRES_IN"),
+    JWT_ACCESS_EXPIRES_IN: parseJwtDuration(environment),
     PORT: parsePort(environment.PORT),
     CORS_ORIGINS: parseOrigins(environment.CORS_ORIGINS)
   };

@@ -16,6 +16,8 @@ import { CatalogModule } from "./catalog/catalog.module";
 import { ProductModule } from "./products/product.module";
 import { ApiExceptionFilter } from "./http/api-exception.filter";
 import { ApiResponseInterceptor } from "./http/api-response.interceptor";
+import { ObservabilityModule } from "./observability/observability.module";
+import { RequestLoggingInterceptor } from "./observability/request-logging.interceptor";
 
 @Module({
   imports: [
@@ -25,6 +27,7 @@ import { ApiResponseInterceptor } from "./http/api-response.interceptor";
       validate: validateEnvironment
     }),
     PrismaModule,
+    ObservabilityModule,
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
     AuthModule,
     AuditModule,
@@ -34,6 +37,6 @@ import { ApiResponseInterceptor } from "./http/api-response.interceptor";
     ProductModule
   ],
   controllers: [AppController],
-  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }, { provide: APP_GUARD, useClass: AuthorizationGuard }, { provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor }, { provide: APP_FILTER, useClass: ApiExceptionFilter }]
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }, { provide: APP_GUARD, useClass: AuthorizationGuard }, { provide: APP_INTERCEPTOR, useClass: RequestLoggingInterceptor }, { provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor }, { provide: APP_FILTER, useClass: ApiExceptionFilter }]
 })
 export class AppModule {}

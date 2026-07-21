@@ -4,10 +4,12 @@ import { RequestMethod, ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { AppModule } from "./app.module";
 import type { AppEnvironment } from "./config/environment";
+import { StructuredLogger } from "./observability/structured-logger";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService<AppEnvironment, true>);
+  const logger = app.get(StructuredLogger);
   const port = config.get("PORT", { infer: true });
   const corsOrigins = config.get("CORS_ORIGINS", { infer: true });
 
@@ -18,9 +20,10 @@ async function bootstrap() {
     credentials: true,
     origin: corsOrigins
   });
+  app.enableShutdownHooks();
 
   await app.listen(port);
-  console.log(`MoeCraft API running at http://localhost:${port}`);
+  logger.info("api.started", { port });
 }
 
 void bootstrap();

@@ -40,18 +40,22 @@ export class AuthorizationGuard implements CanActivate {
     if (!user?.isActive) throw new UnauthorizedException("AUTHENTICATION_REQUIRED");
     const principal: RequestPrincipal = {
       sub: tokenPrincipal.sub,
-      roles: user.roles.map(({ role }) => role as UserRole),
+      roles: user.roles.map(({ role }) => role).filter((role): role is UserRole => role in ROLE_PERMISSIONS),
       merchantId: user.merchantMemberships[0]?.merchantId
     };
     request.user = principal;
     if (roles.length && !roles.some((role) => principal.roles.includes(role))) throw new ForbiddenException("PERMISSION_DENIED");
-    if (permissions.length && !permissions.every((permission) => principal.roles.some((role) => ROLE_PERMISSIONS[role].includes(permission)))) throw new ForbiddenException("PERMISSION_DENIED");
+    if (permissions.length && !rolesHavePermissions(principal.roles, permissions)) throw new ForbiddenException("PERMISSION_DENIED");
     const membership=user.merchantMemberships[0];const privileged=principal.roles.some((role)=>role==="PLATFORM_ADMIN"||role==="PLATFORM_OPERATOR")||membership?.role==="OWNER";
     if(adminRoute&&!privileged&&!this.jsonPermissions(membership?.routePermissions).includes(adminRoute))throw new ForbiddenException("ROUTE_PERMISSION_DENIED");
     if(adminButton&&!privileged&&!this.jsonPermissions(membership?.buttonPermissions).includes(adminButton))throw new ForbiddenException("BUTTON_PERMISSION_DENIED");
     return true;
   }
   private jsonPermissions(value:Prisma.JsonValue|undefined):string[]{return Array.isArray(value)?value.filter((item):item is string=>typeof item==="string"):[];}
+}
+
+export function rolesHavePermissions(roles: readonly UserRole[], permissions: readonly Permission[]): boolean {
+  return permissions.every((permission) => roles.some((role) => ROLE_PERMISSIONS[role]?.includes(permission) ?? false));
 }
 
 export function assertMerchantScope(principal: RequestPrincipal, merchantId: string) {

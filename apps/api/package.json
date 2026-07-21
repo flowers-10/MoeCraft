@@ -8,7 +8,9 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "test": "node -r ts-node/register/transpile-only --test test/api.test.ts",
+    "test:typecheck": "tsc -p tsconfig.test.json --noEmit"
   },
   "dependencies": {
     "@moecraft/shared": "workspace:*",
@@ -19,6 +21,7 @@
     "@nestjs/platform-express": "^11.1.6",
     "@nestjs/throttler": "^6.4.0",
     "@prisma/client": "^6.19.3",
+    "bcryptjs": "^3.0.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "reflect-metadata": "^0.2.2",
@@ -27,7 +30,6 @@
   "devDependencies": {
     "@nestjs/cli": "^11.0.10",
     "@types/node": "^24.0.13",
-    "bcryptjs": "^3.0.3",
     "prisma": "^6.19.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"

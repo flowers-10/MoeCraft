@@ -1,2 +1,14 @@
-import{Controller,Get,Query}from"@nestjs/common";import{RequirePermissions}from"../auth/authorization";import{PrismaService}from"../prisma/prisma.service";
-@Controller("audit-logs")@RequirePermissions("audit:read")export class AuditController{constructor(private readonly prisma:PrismaService){}@Get()list(@Query("page")page="1",@Query("pageSize")pageSize="50"){const take=Math.min(Math.max(Number(pageSize)||50,1),100);const skip=(Math.max(Number(page)||1,1)-1)*take;return this.prisma.auditLog.findMany({orderBy:{createdAt:"desc"},skip,take});}}
+import { Controller, Get, Query } from "@nestjs/common";
+import { RequirePermissions } from "../auth/authorization";
+import { AuditService } from "./audit.service";
+
+@Controller("audit-logs")
+@RequirePermissions("audit:read")
+export class AuditController {
+  constructor(private readonly audit: AuditService) {}
+
+  @Get()
+  list(@Query("page") page = "1", @Query("pageSize") pageSize = "50") {
+    return this.audit.list(page, pageSize);
+  }
+}

@@ -11,7 +11,7 @@ import { AuthorizationGuard } from "./authorization";
     inject: [ConfigService],
     useFactory: (config: ConfigService<AppEnvironment, true>) => ({
       secret: config.get("JWT_ACCESS_SECRET", { infer: true }),
-      signOptions: { expiresIn: "15m" }
+      signOptions: { expiresIn: config.get("JWT_ACCESS_EXPIRES_IN", { infer: true }) }
     })
   })],
   controllers: [AuthController],
