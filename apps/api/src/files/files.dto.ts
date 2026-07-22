@@ -1,1 +1,7 @@
-import{IsInt,IsString,Length,Max,Min}from"class-validator";export class CreateFileDto{@IsString()@Length(1,80)purpose!:string;@IsString()@Length(1,255)fileName!:string;@IsString()@Length(3,120)mimeType!:string;@IsInt()@Min(1)@Max(20_000_000)sizeBytes!:number;}
+import { IsString, Length } from "class-validator";
+
+export class CreateFileDto {
+  @IsString()
+  @Length(1, 80)
+  purpose!: string;
+}

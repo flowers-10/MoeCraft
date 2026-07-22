@@ -2,7 +2,7 @@
 import { computed, ref } from "vue";
 import { UiButton, UiField, UiFileUpload, UiForm, UiFormSection, UiInput, UiSelect, UiTextarea, type UiFormRules } from "@moecraft/ui";
 import type { CatalogOverview, ProductDraftInput, ProductReviewEventView, ProductStatus } from "@moecraft/shared";
-import { apiRequest } from "../../../../api";
+import { uploadFile } from "../../../../api";
 import { useLocale } from "../../../../i18n";
 import { productStatusKeys } from "../productI18n";
 
@@ -50,7 +50,7 @@ async function registerFile(index: number, file: File) {
   uploadingIndex.value = index;
   delete uploadErrors.value[index];
   try {
-    const asset = await apiRequest<{ id: string }>("/files", { method: "POST", body: JSON.stringify({ purpose: "product-media", fileName: file.name, mimeType: file.type, sizeBytes: file.size }) });
+    const asset = await uploadFile<{ id: string }>("product-media", file);
     const media = props.modelValue.media[index];
     if (!media) return;
     media.fileId = asset.id;
@@ -191,7 +191,7 @@ async function registerFile(index: number, file: File) {
 .validation-error{padding:10px 13px;margin:0;border:1px solid color-mix(in srgb,var(--danger) 25%,var(--border));border-radius:9px;background:var(--danger-soft);color:var(--danger);font-size:11px}
 .history{padding:16px 18px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}.history>h3{margin:0 0 10px;font-size:14px}.history article{padding:11px 0;border-top:1px solid var(--border)}.history article:first-of-type{border-top:0}.history article div{display:flex;justify-content:space-between;gap:14px}.history time{color:var(--text-muted);font-size:9px}.history p,.history ul{margin:7px 0 0;color:var(--text-secondary);font-size:11px;line-height:1.55}
 fieldset{display:grid;gap:16px;padding:0;margin:0;border:0}fieldset:disabled{opacity:.72}
-.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px 16px}.form-grid.compact{padding:16px}.wide{grid-column:1/-1}.dimensions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px 16px}.form-grid.compact{align-items:start;padding:16px}.wide{grid-column:1/-1}.dimensions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
 .repeat-list{display:grid;gap:12px}.repeat-card{overflow:hidden;border:1px solid var(--border);border-radius:11px;background:color-mix(in srgb,var(--surface-raised) 58%,var(--surface));box-shadow:0 3px 10px rgb(31 45 74 / 4%)}
 .repeat-header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 14px;border-bottom:1px solid var(--border);background:var(--surface)}.repeat-header>div{display:flex;align-items:center;gap:9px}.repeat-header span{display:grid;width:26px;height:26px;place-items:center;border-radius:7px;background:var(--accent-soft);color:var(--accent);font-size:9px;font-weight:750}.repeat-header b{font-size:12px}
 .media-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(130px,.7fr) minmax(0,1fr) 100px;gap:14px;padding:16px}.upload-field{grid-row:span 2}.media-actions{display:flex;justify-content:flex-end;padding:0 16px 16px}

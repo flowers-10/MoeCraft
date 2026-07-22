@@ -12,6 +12,7 @@ export { default as UiList } from "./components/UiList.vue";
 export { default as UiSelect } from "./components/UiSelect.vue";
 export { default as UiTable } from "./components/UiTable.vue";
 export { default as UiTextarea } from "./components/UiTextarea.vue";
+export { default as UiToast } from "./components/UiToast.vue";
 export { default as UiPageContainer } from "./layout/UiPageContainer.vue";
 export { default as UiPageHeader } from "./layout/UiPageHeader.vue";
 export { default as UiSplitLayout } from "./layout/UiSplitLayout.vue";

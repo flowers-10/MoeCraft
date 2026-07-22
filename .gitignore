@@ -10,4 +10,5 @@ deploy/staging.env
 .env
 .env.*
 !.env.example
+apps/api/.storage/
 .DS_Store

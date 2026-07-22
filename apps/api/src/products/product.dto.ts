@@ -8,13 +8,13 @@ export class ProductSkuDraftDto {
   @IsOptional() @IsString() @MaxLength(160) nameEnUs?: string;
   @IsOptional() @IsString() @MaxLength(80) barcode?: string;
   @IsObject() optionValues!: Record<string, string>;
-  @IsOptional() @IsInt() @Min(0) weightGrams?: number;
-  @IsOptional() @IsInt() @Min(0) lengthMm?: number;
-  @IsOptional() @IsInt() @Min(0) widthMm?: number;
-  @IsOptional() @IsInt() @Min(0) heightMm?: number;
-  @IsInt() @Min(0) priceAmount!: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0) weightGrams?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0) lengthMm?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0) widthMm?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0) heightMm?: number;
+  @Type(() => Number) @IsInt() @Min(0) priceAmount!: number;
   @IsOptional() @IsString() @Length(3, 3) currency?: string;
-  @IsInt() @Min(0) @Max(1000000) initialStock!: number;
+  @Type(() => Number) @IsInt() @Min(0) @Max(1000000) initialStock!: number;
 }
 
 export class ProductMediaDraftDto {
@@ -23,7 +23,7 @@ export class ProductMediaDraftDto {
   @IsIn(["IMAGE", "VIDEO"]) kind!: "IMAGE" | "VIDEO";
   @IsOptional() @IsString() @MaxLength(200) altZhCn?: string;
   @IsOptional() @IsString() @MaxLength(200) altEnUs?: string;
-  @IsInt() @Min(0) sortOrder!: number;
+  @Type(() => Number) @IsInt() @Min(0) sortOrder!: number;
   @IsBoolean() isCover!: boolean;
 }
 

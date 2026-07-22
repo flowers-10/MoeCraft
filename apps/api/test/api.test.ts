@@ -7,7 +7,8 @@ import * as bcrypt from "bcryptjs";
 import { AppService } from "../src/app.service";
 import { AuthService } from "../src/auth/auth.service";
 import { AuthorizationGuard, assertMerchantScope, rolesHavePermissions, type RequestPrincipal } from "../src/auth/authorization";
-import { FilesService } from "../src/files/files.service";
+import { FilesService, type UploadedFilePayload } from "../src/files/files.service";
+import { LocalObjectStorageService } from "../src/files/local-object-storage.service";
 import { resolveApiErrorCode } from "../src/http/api-error-code";
 import { canTransitionMerchantApplication } from "../src/merchants/merchant-onboarding-workflow";
 import { ApiMetricsService } from "../src/observability/api-metrics.service";
@@ -218,20 +219,39 @@ test("product workflow accepts only declared status transitions", () => {
 });
 
 test("file service rejects unsupported MIME types and scopes valid assets to their owner", async () => {
+  const writes: Array<{ objectKey: string; buffer: Buffer }> = [];
   const prisma = {
     fileAsset: {
       create: async ({ data }: { data: Record<string, unknown> }) => data
     }
   } as unknown as PrismaService;
-  const files = new FilesService(prisma);
+  const storage = {
+    createObjectKey: (ownerId: string) => `private/${ownerId}/object-1`,
+    write: async (objectKey: string, buffer: Buffer) => { writes.push({ objectKey, buffer }); },
+    remove: async () => undefined
+  } as unknown as LocalObjectStorageService;
+  const files = new FilesService(prisma, storage);
+  const unsupportedFile: UploadedFilePayload = {
+    originalname: "script.exe",
+    mimetype: "application/octet-stream",
+    size: 100,
+    buffer: Buffer.from("unsafe")
+  };
 
-  assert.throws(
-    () => files.create("user-1", { purpose: "product-media", fileName: "script.exe", mimeType: "application/octet-stream", sizeBytes: 100 }),
+  await assert.rejects(
+    () => files.create("user-1", { purpose: "product-media" }, unsupportedFile),
     (error: unknown) => error instanceof BadRequestException && error.message === "UNSUPPORTED_FILE_TYPE"
   );
-  const asset = await files.create("user-1", { purpose: "product-media", fileName: "cover.png", mimeType: "image/png", sizeBytes: 100 });
+  const asset = await files.create("user-1", { purpose: "product-media" }, {
+    originalname: "cover.png",
+    mimetype: "image/png",
+    size: 100,
+    buffer: Buffer.from("image")
+  });
   assert.equal(asset.ownerId, "user-1");
-  assert.match(asset.objectKey, /^private\/user-1\//);
+  assert.equal(asset.objectKey, "private/user-1/object-1");
+  assert.equal(asset.status, "READY");
+  assert.equal(writes.length, 1);
 });
 
 test("API errors preserve domain codes and use safe generic fallbacks", () => {
