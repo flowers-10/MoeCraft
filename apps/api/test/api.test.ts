@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { BadRequestException, ConflictException, ForbiddenException, ServiceUnavailableException, UnauthorizedException, type ExecutionContext } from "@nestjs/common";
+import { BadRequestException, ConflictException, ForbiddenException, NotFoundException, ServiceUnavailableException, UnauthorizedException, type ExecutionContext } from "@nestjs/common";
 import type { Reflector } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
@@ -8,6 +8,7 @@ import { AppService } from "../src/app.service";
 import { AuthService } from "../src/auth/auth.service";
 import { AuthorizationGuard, assertMerchantScope, rolesHavePermissions, type RequestPrincipal } from "../src/auth/authorization";
 import { FilesService, type UploadedFilePayload } from "../src/files/files.service";
+import { CatalogService } from "../src/catalog/catalog.service";
 import { LocalObjectStorageService } from "../src/files/local-object-storage.service";
 import { resolveApiErrorCode } from "../src/http/api-error-code";
 import { applyInventoryDelta, InvalidInventoryMutationError } from "../src/inventory/inventory-domain";
@@ -305,6 +306,33 @@ test("file service rejects unsupported MIME types and scopes valid assets to the
   assert.equal(asset.objectKey, "private/user-1/object-1");
   assert.equal(asset.status, "READY");
   assert.equal(writes.length, 1);
+});
+
+test("file downloads keep private uploads protected and expose only published media", async () => {
+  const prisma = {
+    fileAsset: { findFirst: async () => ({ id: "file-1", ownerId: "owner-1", objectKey: "private/owner-1/file-1", mimeType: "image/png", sizeBytes: 5 }) },
+    merchantMember: { count: async () => 0 },
+    productMedia: { count: async () => 0 },
+    store: { count: async () => 0 }
+  } as unknown as PrismaService;
+  const storage = { stream: async () => { throw new Error("private object must not be read"); } } as unknown as LocalObjectStorageService;
+  const files = new FilesService(prisma, storage);
+  await assert.rejects(
+    () => files.download({ sub: "other-user", roles: ["CUSTOMER"] }, "file-1"),
+    (error: unknown) => error instanceof ForbiddenException && error.message === "FILE_ACCESS_DENIED"
+  );
+  await assert.rejects(
+    () => files.publicDownload("file-1"),
+    (error: unknown) => error instanceof NotFoundException && error.message === "PUBLIC_FILE_NOT_FOUND"
+  );
+});
+
+test("public catalog rejects inverted price ranges before querying products", async () => {
+  const catalog = new CatalogService({} as PrismaService);
+  await assert.rejects(
+    () => catalog.searchProducts({ minPrice: 2000, maxPrice: 1000 }),
+    (error: unknown) => error instanceof BadRequestException && error.message === "INVALID_PRICE_RANGE"
+  );
 });
 
 test("inventory math rejects negative and oversold balances", () => {

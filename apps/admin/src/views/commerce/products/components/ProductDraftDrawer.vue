@@ -107,6 +107,13 @@ async function registerFile(index: number, file: File) {
               <UiField :label="t('products.scale')"><UiInput v-model="modelValue.scale" :placeholder="t('products.scalePlaceholder')" /></UiField>
               <UiField :label="t('products.manufacturer')"><UiInput v-model="modelValue.manufacturer" /></UiField>
               <UiField :label="t('products.copyright')"><UiInput v-model="modelValue.copyrightNotice" /></UiField>
+              <UiField :label="t('products.saleType')"><UiSelect v-model="modelValue.saleType"><option value="IN_STOCK">{{ t('products.saleTypeInStock') }}</option><option value="PREORDER">{{ t('products.saleTypePreorder') }}</option></UiSelect></UiField>
+              <UiField class="wide" :label="t('products.afterSalesSummary')"><UiTextarea v-model="modelValue.afterSalesSummary" rows="2" /></UiField>
+              <template v-if="modelValue.saleType === 'PREORDER'">
+                <UiField class="wide" :label="t('products.presaleNotice')" required><UiTextarea v-model="modelValue.presaleNotice" rows="3" /></UiField>
+                <UiField :label="t('products.shippingWindowStart')" required><UiInput v-model="modelValue.shippingWindowStart" type="date" /></UiField>
+                <UiField :label="t('products.shippingWindowEnd')" required><UiInput v-model="modelValue.shippingWindowEnd" type="date" /></UiField>
+              </template>
               <UiField name="descriptionZhCn" class="wide" :label="t('products.descriptionZhCn')" required><UiTextarea v-model="modelValue.descriptionZhCn" rows="4" /></UiField>
               <UiField class="wide" :label="t('products.descriptionEnUs')"><UiTextarea v-model="modelValue.descriptionEnUs" rows="3" /></UiField>
             </div>

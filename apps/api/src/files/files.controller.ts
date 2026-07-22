@@ -15,8 +15,14 @@ export class FilesController {
     return this.files.create(request.user.sub, dto, file);
   }
 
+  @Get("public/:id")
+  publicDownload(@Param("id") id: string) {
+    return this.files.publicDownload(id);
+  }
+
   @Get(":id")
-  download(@Param("id") id: string) {
-    return this.files.download(id);
+  @RequireRoles("CUSTOMER", "MERCHANT_OWNER", "MERCHANT_STAFF", "PLATFORM_OPERATOR", "PLATFORM_ADMIN")
+  download(@Req() request: { user: RequestPrincipal }, @Param("id") id: string) {
+    return this.files.download(request.user, id);
   }
 }

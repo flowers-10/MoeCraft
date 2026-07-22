@@ -23,6 +23,11 @@ enum ProductStatus {
   ARCHIVED
 }
 
+enum ProductSaleType {
+  IN_STOCK
+  PREORDER
+}
+
 enum FileStatus {
   PENDING
   READY
@@ -374,6 +379,12 @@ model Product {
   scale      String?       @db.VarChar(80)
   manufacturer String?     @db.VarChar(160)
   copyrightNotice String?  @db.VarChar(500)
+  saleType   ProductSaleType @default(IN_STOCK)
+  presaleNotice String?      @db.Text
+  shippingWindowStart DateTime?
+  shippingWindowEnd DateTime?
+  afterSalesSummary String?  @db.VarChar(1000)
+  salesCount Int             @default(0)
   status     ProductStatus @default(DRAFT)
   store      Store         @relation(fields: [storeId], references: [id], onDelete: Restrict)
   category   Category?     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
@@ -392,6 +403,7 @@ model Product {
   @@index([brandId, status])
   @@index([franchiseId, status])
   @@index([characterId, status])
+  @@index([status, saleType, updatedAt])
 }
 
 model ProductReviewEvent {

@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable, NotFoundException, StreamableFile } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException, StreamableFile } from "@nestjs/common";
+import type { RequestPrincipal } from "../auth/authorization";
 import { PrismaService } from "../prisma/prisma.service";
 import type { CreateFileDto } from "./files.dto";
 import { LocalObjectStorageService } from "./local-object-storage.service";
@@ -43,12 +44,31 @@ export class FilesService {
     }
   }
 
-  async download(id: string): Promise<StreamableFile> {
+  async download(principal: RequestPrincipal, id: string): Promise<StreamableFile> {
     const asset = await this.prisma.fileAsset.findFirst({
       where: { id, status: { notIn: ["DELETED", "QUARANTINED"] } }
     });
     if (!asset) throw new NotFoundException("FILE_NOT_FOUND");
+    const platformAccess = principal.roles.some((role) => role === "PLATFORM_ADMIN" || role === "PLATFORM_OPERATOR");
+    if (asset.ownerId !== principal.sub && !platformAccess) {
+      const sameMerchant = await this.prisma.merchantMember.count({ where: { userId: principal.sub, merchant: { members: { some: { userId: asset.ownerId } } } } });
+      if (!sameMerchant) throw new ForbiddenException("FILE_ACCESS_DENIED");
+    }
+    return this.stream(asset);
+  }
 
+  async publicDownload(id: string): Promise<StreamableFile> {
+    const asset = await this.prisma.fileAsset.findFirst({ where: { id, status: "READY" } });
+    if (!asset) throw new NotFoundException("FILE_NOT_FOUND");
+    const [productUsage, storeUsage] = await Promise.all([
+      this.prisma.productMedia.count({ where: { fileId: id, kind: "IMAGE", product: { status: "ACTIVE", store: { isOpen: true, merchant: { status: "ACTIVE" } } } } }),
+      this.prisma.store.count({ where: { isOpen: true, merchant: { status: "ACTIVE" }, OR: [{ logoFileId: id }, { bannerFileId: id }] } })
+    ]);
+    if (!productUsage && !storeUsage) throw new NotFoundException("PUBLIC_FILE_NOT_FOUND");
+    return this.stream(asset);
+  }
+
+  private async stream(asset: { objectKey: string; mimeType: string; sizeBytes: number }): Promise<StreamableFile> {
     return new StreamableFile(await this.storage.stream(asset.objectKey), {
       type: asset.mimeType,
       length: asset.sizeBytes

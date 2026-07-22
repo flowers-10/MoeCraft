@@ -58,7 +58,12 @@ async function main(): Promise<void> {
             nameZhCn: "标准版",
             nameEnUs: "Standard Edition",
             priceAmount: 129_900,
-            inventory: { create: { onHand: 20 } }
+            inventory: {
+              create: {
+                onHand: 20,
+                ledgerEntries: { create: { type: "INITIAL_STOCK", onHandDelta: 20, reservedDelta: 0, onHandAfter: 20, reservedAfter: 0, reason: "演示商品初始库存" } }
+              }
+            }
           }
         }
       }

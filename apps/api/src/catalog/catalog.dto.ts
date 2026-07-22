@@ -1,4 +1,5 @@
-import { IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, Length, Matches, Min } from "class-validator";
+import { Type } from "class-transformer";
+import { IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, Length, Matches, Max, MaxLength, Min } from "class-validator";
 
 export class CatalogBaseDto {
   @IsString() @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/) @Length(2, 120) slug!: string;
@@ -24,3 +25,18 @@ export class AttributeTemplateDto {
   @IsOptional() @IsInt() @Min(0) sortOrder?: number;
 }
 export class CatalogStatusDto { @IsBoolean() isActive!: boolean; }
+
+export class CatalogProductQueryDto {
+  @IsOptional() @IsString() @MaxLength(100) q?: string;
+  @IsOptional() @IsString() @MaxLength(120) category?: string;
+  @IsOptional() @IsString() @MaxLength(120) brand?: string;
+  @IsOptional() @IsString() @MaxLength(120) franchise?: string;
+  @IsOptional() @IsString() @MaxLength(120) store?: string;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0) minPrice?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0) maxPrice?: number;
+  @IsOptional() @IsIn(["true", "false"]) inStock?: "true" | "false";
+  @IsOptional() @IsIn(["IN_STOCK", "PREORDER"]) saleType?: "IN_STOCK" | "PREORDER";
+  @IsOptional() @IsIn(["RELEVANCE", "NEWEST", "PRICE_ASC", "PRICE_DESC", "SALES"]) sort?: "RELEVANCE" | "NEWEST" | "PRICE_ASC" | "PRICE_DESC" | "SALES";
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) page?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(60) pageSize?: number;
+}
