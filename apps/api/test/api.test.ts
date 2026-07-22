@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { BadRequestException, ForbiddenException, ServiceUnavailableException, UnauthorizedException, type ExecutionContext } from "@nestjs/common";
+import { BadRequestException, ConflictException, ForbiddenException, ServiceUnavailableException, UnauthorizedException, type ExecutionContext } from "@nestjs/common";
 import type { Reflector } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
@@ -10,6 +10,8 @@ import { AuthorizationGuard, assertMerchantScope, rolesHavePermissions, type Req
 import { FilesService, type UploadedFilePayload } from "../src/files/files.service";
 import { LocalObjectStorageService } from "../src/files/local-object-storage.service";
 import { resolveApiErrorCode } from "../src/http/api-error-code";
+import { applyInventoryDelta, InvalidInventoryMutationError } from "../src/inventory/inventory-domain";
+import { InventoryService } from "../src/inventory/inventory.service";
 import { canTransitionMerchantApplication } from "../src/merchants/merchant-onboarding-workflow";
 import { ApiMetricsService } from "../src/observability/api-metrics.service";
 import { ensureTraceContext } from "../src/observability/trace-context";
@@ -35,6 +37,57 @@ function createGuardContext(metadata: GuardMetadata, databaseUser: unknown, auth
     switchToHttp: () => ({ getRequest: () => request })
   } as unknown as ExecutionContext;
   return { guard: new AuthorizationGuard(reflector, jwt, prisma), context, request };
+}
+
+function createInventoryPrisma(options: { conflict?: boolean; failLedger?: boolean } = {}) {
+  let inventory = { id: "inventory-1", skuId: "sku-1", onHand: 5, reserved: 0, lowStockThreshold: 2, version: 0, createdAt: new Date(), updatedAt: new Date() };
+  let reservations: Array<Record<string, unknown>> = [];
+  let ledger: Array<Record<string, unknown>> = [];
+  const product = { status: "ACTIVE", store: { isOpen: true, merchant: { status: "ACTIVE" } } };
+  const transaction = {
+    inventory: {
+      findUnique: async ({ select }: { select?: { id?: boolean } }) => select ? { id: inventory.id } : { ...inventory, sku: { id: "sku-1", isActive: true, product } },
+      updateMany: async ({ where, data }: { where: Record<string, unknown>; data: Record<string, number> }) => {
+        if (options.conflict || where.version !== inventory.version || where.onHand !== inventory.onHand || where.reserved !== inventory.reserved) return { count: 0 };
+        inventory = { ...inventory, onHand: data.onHand, reserved: data.reserved, version: data.version, updatedAt: new Date() };
+        return { count: 1 };
+      }
+    },
+    inventoryReservation: {
+      findUnique: async ({ where }: { where: { inventoryId_referenceId: { inventoryId: string; referenceId: string } } }) => {
+        const match = reservations.find((item) => item.inventoryId === where.inventoryId_referenceId.inventoryId && item.referenceId === where.inventoryId_referenceId.referenceId);
+        return match ? { ...match, inventory: { ...inventory } } : null;
+      },
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        const row = { id: `reservation-${reservations.length + 1}`, status: "ACTIVE", committedAt: null, releasedAt: null, releaseReason: null, createdAt: new Date(), updatedAt: new Date(), ...data };
+        reservations.push(row);
+        return row;
+      },
+      updateMany: async ({ where, data }: { where: { id: string; status: string }; data: Record<string, unknown> }) => {
+        const index = reservations.findIndex((item) => item.id === where.id && item.status === where.status);
+        if (index < 0) return { count: 0 };
+        reservations[index] = { ...reservations[index], ...data, updatedAt: new Date() };
+        return { count: 1 };
+      }
+    },
+    inventoryLedgerEntry: {
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        if (options.failLedger) throw new Error("ledger unavailable");
+        const row = { id: `ledger-${ledger.length + 1}`, createdAt: new Date(), ...data };
+        ledger.push(row);
+        return row;
+      }
+    }
+  };
+  const prisma = {
+    $transaction: async <T>(operation: (tx: typeof transaction) => Promise<T>) => {
+      const snapshot = { inventory: { ...inventory }, reservations: structuredClone(reservations), ledger: structuredClone(ledger) };
+      try { return await operation(transaction); }
+      catch (error) { inventory = snapshot.inventory; reservations = snapshot.reservations; ledger = snapshot.ledger; throw error; }
+    },
+    inventoryReservation: { findFirst: async () => null }
+  } as unknown as PrismaService;
+  return { prisma, state: () => ({ inventory, reservations, ledger }) };
 }
 
 test("health stays lightweight while readiness probes the database", async () => {
@@ -252,6 +305,53 @@ test("file service rejects unsupported MIME types and scopes valid assets to the
   assert.equal(asset.objectKey, "private/user-1/object-1");
   assert.equal(asset.status, "READY");
   assert.equal(writes.length, 1);
+});
+
+test("inventory math rejects negative and oversold balances", () => {
+  assert.deepEqual(applyInventoryDelta({ onHand: 10, reserved: 2, version: 4 }, -3, 1), { onHand: 7, reserved: 3, version: 5 });
+  assert.throws(
+    () => applyInventoryDelta({ onHand: 2, reserved: 0, version: 0 }, -3, 0),
+    (error: unknown) => error instanceof InvalidInventoryMutationError && error.code === "NEGATIVE_INVENTORY"
+  );
+  assert.throws(
+    () => applyInventoryDelta({ onHand: 3, reserved: 1, version: 0 }, 0, 3),
+    (error: unknown) => error instanceof InvalidInventoryMutationError && error.code === "INSUFFICIENT_AVAILABLE_STOCK"
+  );
+});
+
+test("inventory reservations lock, commit, and release stock with ledger entries", async () => {
+  const committedStore = createInventoryPrisma();
+  const committedService = new InventoryService(committedStore.prisma);
+  await committedService.reserve("sku-1", "order-line-1", 3, new Date(Date.now() + 60_000));
+  assert.equal(committedStore.state().inventory.onHand, 5);
+  assert.equal(committedStore.state().inventory.reserved, 3);
+  await committedService.commitReservation("sku-1", "order-line-1");
+  assert.equal(committedStore.state().inventory.onHand, 2);
+  assert.equal(committedStore.state().inventory.reserved, 0);
+  assert.deepEqual(committedStore.state().ledger.map((entry) => entry.type), ["RESERVATION_CREATED", "RESERVATION_COMMITTED"]);
+
+  const releasedStore = createInventoryPrisma();
+  const releasedService = new InventoryService(releasedStore.prisma);
+  await releasedService.reserve("sku-1", "order-line-2", 2, new Date(Date.now() + 60_000));
+  await releasedService.releaseReservation("sku-1", "order-line-2", "订单取消");
+  assert.equal(releasedStore.state().inventory.onHand, 5);
+  assert.equal(releasedStore.state().inventory.reserved, 0);
+});
+
+test("inventory conditional updates prevent overselling and ledger failures roll back", async () => {
+  const conflictedStore = createInventoryPrisma({ conflict: true });
+  await assert.rejects(
+    () => new InventoryService(conflictedStore.prisma).reserve("sku-1", "order-line-conflict", 4, new Date(Date.now() + 60_000)),
+    (error: unknown) => error instanceof ConflictException && error.message === "INVENTORY_VERSION_CHANGED"
+  );
+  assert.equal(conflictedStore.state().inventory.reserved, 0);
+  assert.equal(conflictedStore.state().reservations.length, 0);
+
+  const rollbackStore = createInventoryPrisma({ failLedger: true });
+  await assert.rejects(() => new InventoryService(rollbackStore.prisma).reserve("sku-1", "order-line-rollback", 2, new Date(Date.now() + 60_000)));
+  assert.equal(rollbackStore.state().inventory.reserved, 0);
+  assert.equal(rollbackStore.state().reservations.length, 0);
+  assert.equal(rollbackStore.state().ledger.length, 0);
 });
 
 test("API errors preserve domain codes and use safe generic fallbacks", () => {

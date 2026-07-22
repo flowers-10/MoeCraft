@@ -18,6 +18,7 @@ import { ApiExceptionFilter } from "./http/api-exception.filter";
 import { ApiResponseInterceptor } from "./http/api-response.interceptor";
 import { ObservabilityModule } from "./observability/observability.module";
 import { RequestLoggingInterceptor } from "./observability/request-logging.interceptor";
+import { InventoryModule } from "./inventory/inventory.module";
 
 @Module({
   imports: [
@@ -34,7 +35,8 @@ import { RequestLoggingInterceptor } from "./observability/request-logging.inter
     FilesModule,
     MerchantsModule,
     CatalogModule,
-    ProductModule
+    ProductModule,
+    InventoryModule
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }, { provide: APP_GUARD, useClass: AuthorizationGuard }, { provide: APP_INTERCEPTOR, useClass: RequestLoggingInterceptor }, { provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor }, { provide: APP_FILTER, useClass: ApiExceptionFilter }]

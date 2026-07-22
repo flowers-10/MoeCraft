@@ -365,6 +365,29 @@
         ]
       }
     },
+    "/api/v1/files/{id}": {
+      "get": {
+        "operationId": "FilesController_download",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Files"
+        ]
+      }
+    },
     "/api/v1/merchant-applications/mine": {
       "get": {
         "operationId": "MerchantOnboardingController_mine",
@@ -1588,6 +1611,143 @@
           "ProductReview"
         ]
       }
+    },
+    "/api/v1/merchant/inventory": {
+      "get": {
+        "operationId": "InventoryController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/api/v1/merchant/inventory/{skuId}/ledger": {
+      "get": {
+        "operationId": "InventoryController_ledger",
+        "parameters": [
+          {
+            "name": "skuId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/api/v1/merchant/inventory/{skuId}/adjustments": {
+      "post": {
+        "operationId": "InventoryController_adjust",
+        "parameters": [
+          {
+            "name": "skuId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdjustInventoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/api/v1/merchant/inventory/{skuId}/low-stock-threshold": {
+      "patch": {
+        "operationId": "InventoryController_setThreshold",
+        "parameters": [
+          {
+            "name": "skuId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetLowStockThresholdDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
     }
   },
   "info": {
@@ -1711,28 +1871,10 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 80
-          },
-          "fileName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 255
-          },
-          "mimeType": {
-            "type": "string",
-            "minLength": 3,
-            "maxLength": 120
-          },
-          "sizeBytes": {
-            "type": "number",
-            "minimum": 1,
-            "maximum": 20000000
           }
         },
         "required": [
-          "purpose",
-          "fileName",
-          "mimeType",
-          "sizeBytes"
+          "purpose"
         ]
       },
       "SaveMerchantApplicationDto": {
@@ -2536,6 +2678,46 @@
         "required": [
           "approved",
           "fieldFeedback"
+        ]
+      },
+      "AdjustInventoryDto": {
+        "type": "object",
+        "properties": {
+          "delta": {
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 500
+          },
+          "expectedVersion": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "delta",
+          "reason"
+        ]
+      },
+      "SetLowStockThresholdDto": {
+        "type": "object",
+        "properties": {
+          "lowStockThreshold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "expectedVersion": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "lowStockThreshold"
         ]
       }
     }

@@ -1,6 +1,7 @@
 export * from "./api";
 export * from "./catalog";
 export * from "./products";
+export * from "./inventory";
 export * from "./errors";
 export * from "./permissions";
 export * from "./primitives";

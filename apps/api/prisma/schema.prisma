@@ -50,6 +50,21 @@ enum StaffInvitationStatus {
   CANCELLED
 }
 
+enum InventoryLedgerType {
+  INITIAL_STOCK
+  ADJUSTMENT
+  RESERVATION_CREATED
+  RESERVATION_COMMITTED
+  RESERVATION_RELEASED
+}
+
+enum InventoryReservationStatus {
+  ACTIVE
+  COMMITTED
+  RELEASED
+  EXPIRED
+}
+
 model FileAsset {
   id          String     @id @default(cuid())
   ownerId     String
@@ -408,6 +423,7 @@ model Sku {
   heightMm    Int?
   priceAmount Int
   currency    String     @default("CNY") @db.Char(3)
+  isActive    Boolean    @default(true)
   product     Product    @relation(fields: [productId], references: [id], onDelete: Restrict)
   inventory   Inventory?
   createdAt   DateTime   @default(now())
@@ -434,11 +450,52 @@ model ProductMedia {
 }
 
 model Inventory {
-  id        String   @id @default(cuid())
-  skuId     String   @unique
-  onHand    Int      @default(0)
-  reserved  Int      @default(0)
-  sku       Sku      @relation(fields: [skuId], references: [id], onDelete: Restrict)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String                 @id @default(cuid())
+  skuId             String                 @unique
+  onHand            Int                    @default(0)
+  reserved          Int                    @default(0)
+  lowStockThreshold Int                    @default(5)
+  version           Int                    @default(0)
+  sku               Sku                    @relation(fields: [skuId], references: [id], onDelete: Restrict)
+  ledgerEntries     InventoryLedgerEntry[]
+  reservations      InventoryReservation[]
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+}
+
+model InventoryLedgerEntry {
+  id            String              @id @default(cuid())
+  inventoryId   String
+  type          InventoryLedgerType
+  onHandDelta   Int
+  reservedDelta Int
+  onHandAfter   Int
+  reservedAfter Int
+  reason        String              @db.VarChar(500)
+  referenceType String?             @db.VarChar(50)
+  referenceId   String?             @db.VarChar(191)
+  actorId       String?             @db.VarChar(191)
+  inventory     Inventory           @relation(fields: [inventoryId], references: [id], onDelete: Restrict)
+  createdAt     DateTime            @default(now())
+
+  @@index([inventoryId, createdAt])
+  @@index([referenceType, referenceId])
+}
+
+model InventoryReservation {
+  id            String                     @id @default(cuid())
+  inventoryId   String
+  referenceId   String                     @db.VarChar(191)
+  quantity      Int
+  status        InventoryReservationStatus @default(ACTIVE)
+  expiresAt     DateTime
+  committedAt   DateTime?
+  releasedAt    DateTime?
+  releaseReason String?                    @db.VarChar(500)
+  inventory     Inventory                  @relation(fields: [inventoryId], references: [id], onDelete: Restrict)
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+
+  @@unique([inventoryId, referenceId])
+  @@index([status, expiresAt])
 }
