@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ADMIN_BUTTON_PERMISSIONS, MERCHANT_STAFF_ROUTE_PERMISSIONS, type AdminButtonPermission, type AdminRoutePermission, type MerchantMemberView, type StoreProfileView, type UserRole } from "@moecraft/shared";
-import { UiTable, type UiTableColumn } from "@moecraft/ui";
-import { apiRequest } from "../../../api";
+import { UiFileUpload, UiTable, type UiTableColumn } from "@moecraft/ui";
+import { apiRequest, uploadFile } from "../../../api";
+import { useFilePreview } from "../../../composables/useFilePreview";
 import { useLocale, type MessageKey } from "../../../i18n";
 
 type DialogMode = "create" | "view" | "edit" | null;
@@ -15,6 +16,9 @@ const loading = ref(true), busy = ref(false), message = ref(""), error = ref("")
 const members = ref<MerchantMemberView[]>([]);
 const dialogMode = ref<DialogMode>(null);
 const selected = ref<MerchantMemberView | null>(null);
+const storeUpload = ref<"logo" | "banner" | null>(null);
+const storeUploadErrors = reactive<Record<"logo" | "banner", string>>({ logo: "", banner: "" });
+const storePreviews = useFilePreview();
 const keyword = ref(""), roleFilter = ref<"ALL" | "OWNER" | "STAFF">("ALL"), routeFilter = ref<"ALL" | AdminRoutePermission>("ALL");
 const isOwner = computed(() => props.roles.includes("MERCHANT_OWNER"));
 const can = (key: AdminButtonPermission) => isOwner.value || props.buttonPermissions.includes(key);
@@ -72,15 +76,56 @@ const form = reactive({ name: "", slug: "", logoFileId: "", bannerFileId: "", de
 
 function feedback(ok: string) { message.value = ok; error.value = ""; }
 function fail() { error.value = t("store.error"); message.value = ""; }
-function fill(store: StoreProfileView | null) { if (store) Object.assign(form, { ...store, returnAddress: store.returnAddress ?? form.returnAddress }); }
+function fill(store: StoreProfileView | null) {
+  if (!store) return;
+  Object.assign(form, {
+    ...store,
+    logoFileId: store.logoFileId ?? "",
+    bannerFileId: store.bannerFileId ?? "",
+    description: store.description ?? "",
+    customerServiceEmail: store.customerServiceEmail ?? "",
+    customerServicePhone: store.customerServicePhone ?? "",
+    returnAddress: store.returnAddress ?? form.returnAddress
+  });
+}
 function resetStaff() { Object.assign(staff, { username: "", displayName: "", password: "", routePermissions: ["system.overview"], buttonPermissions: [] }); }
 function openCreate() { resetStaff(); selected.value = null; dialogMode.value = "create"; }
 function openMember(member: MerchantMemberView, mode: "view" | "edit") { selected.value = { ...member, routePermissions: [...member.routePermissions], buttonPermissions: [...member.buttonPermissions] }; dialogMode.value = mode; }
 function closeDialog() { if (!busy.value) { dialogMode.value = null; selected.value = null; } }
-async function loadStore() { fill(await apiRequest<StoreProfileView | null>("/merchant/store")); }
+async function loadStore() {
+  const store = await apiRequest<StoreProfileView | null>("/merchant/store");
+  fill(store);
+  if (form.logoFileId) void storePreviews.showFileId("logo", form.logoFileId);
+  else storePreviews.clearPreview("logo");
+  if (form.bannerFileId) void storePreviews.showFileId("banner", form.bannerFileId);
+  else storePreviews.clearPreview("banner");
+}
 async function loadTeam() { members.value = await apiRequest<MerchantMemberView[]>("/merchant/members"); }
 async function load() { loading.value = true; error.value = ""; try { if (props.section === "store") await loadStore(); else await loadTeam(); } catch { fail(); } finally { loading.value = false; } }
 async function save() { busy.value = true; try { const payload = { name: form.name, slug: form.slug, logoFileId: form.logoFileId || undefined, bannerFileId: form.bannerFileId || undefined, description: form.description || undefined, customerServiceEmail: form.customerServiceEmail || undefined, customerServicePhone: form.customerServicePhone || undefined, isOpen: form.isOpen, returnAddress: { ...form.returnAddress, postalCode: form.returnAddress.postalCode || undefined } }; await apiRequest("/merchant/store", { method: "PUT", body: JSON.stringify(payload) }); feedback(t("store.saved")); } catch { fail(); } finally { busy.value = false; } }
+async function uploadStoreImage(kind: "logo" | "banner", file: File) {
+  const field = kind === "logo" ? "logoFileId" : "bannerFileId";
+  const previousFileId = form[field];
+  storeUpload.value = kind;
+  storeUploadErrors[kind] = "";
+  storePreviews.showFile(kind, file);
+  try {
+    const asset = await uploadFile<{ id: string }>("store-media", file);
+    form[field] = asset.id;
+  } catch {
+    form[field] = previousFileId;
+    if (previousFileId) void storePreviews.showFileId(kind, previousFileId);
+    else storePreviews.clearPreview(kind);
+    storeUploadErrors[kind] = t("store.imageUploadError");
+  } finally {
+    storeUpload.value = null;
+  }
+}
+function clearStoreImage(kind: "logo" | "banner") {
+  form[kind === "logo" ? "logoFileId" : "bannerFileId"] = "";
+  storeUploadErrors[kind] = "";
+  storePreviews.clearPreview(kind);
+}
 async function createStaff() { busy.value = true; try { await apiRequest("/merchant/staff-accounts", { method: "POST", body: JSON.stringify(staff) }); await loadTeam(); closeDialog(); feedback(t("store.staffCreated")); } catch { fail(); } finally { busy.value = false; } }
 async function saveAccess() { if (!selected.value) return; busy.value = true; try { await apiRequest(`/merchant/members/${selected.value.id}/access`, { method: "PUT", body: JSON.stringify({ routePermissions: selected.value.routePermissions, buttonPermissions: selected.value.buttonPermissions }) }); await loadTeam(); dialogMode.value = null; feedback(t("store.accessSaved")); } catch { fail(); } finally { busy.value = false; } }
 async function setStatus(member: MerchantMemberView) { const next = !member.isActive; if (!window.confirm(t(next ? "team.confirmEnable" : "team.confirmDisable", { name: member.displayName }))) return; try { await apiRequest(`/merchant/members/${member.id}/status`, { method: "PATCH", body: JSON.stringify({ isActive: next }) }); await loadTeam(); feedback(t(next ? "team.enabled" : "team.disabled")); } catch { fail(); } }
@@ -101,6 +146,50 @@ onMounted(load);
 
       <form v-else-if="props.section === 'store'" class="panel profile" @submit.prevent="save">
         <h2>{{ t('store.profile') }}</h2>
+        <section class="branding">
+          <article class="brand-card">
+            <header><div><b>{{ t('store.logo') }}</b><small>{{ t('store.logoHint') }}</small></div></header>
+            <div v-if="storePreviews.previewUrl('logo')" class="brand-preview logo-preview"><img :src="storePreviews.previewUrl('logo')" :alt="t('store.logoPreview')" /></div>
+            <p v-else-if="storePreviews.previewFailed('logo')" class="preview-error" role="alert">{{ t('store.previewError') }}</p>
+            <UiFileUpload
+              accept="image/jpeg,image/png,image/webp"
+              :current-name="form.logoFileId"
+              :placeholder="t('store.uploadPlaceholder')"
+              :hint="t('store.imageHint')"
+              :busy="storeUpload === 'logo'"
+              :disabled="!can('store.profile.edit')"
+              :error="storeUploadErrors.logo"
+              :browse-label="t('store.browse')"
+              :drop-hint="t('store.uploadDropHint')"
+              :uploading-label="t('store.uploading')"
+              :uploading-hint="t('store.uploadingHint')"
+              :clear-label="t('store.clearLogo')"
+              @select="uploadStoreImage('logo', $event)"
+              @clear="clearStoreImage('logo')"
+            />
+          </article>
+          <article class="brand-card">
+            <header><div><b>{{ t('store.banner') }}</b><small>{{ t('store.bannerHint') }}</small></div></header>
+            <div v-if="storePreviews.previewUrl('banner')" class="brand-preview banner-preview"><img :src="storePreviews.previewUrl('banner')" :alt="t('store.bannerPreview')" /></div>
+            <p v-else-if="storePreviews.previewFailed('banner')" class="preview-error" role="alert">{{ t('store.previewError') }}</p>
+            <UiFileUpload
+              accept="image/jpeg,image/png,image/webp"
+              :current-name="form.bannerFileId"
+              :placeholder="t('store.uploadPlaceholder')"
+              :hint="t('store.imageHint')"
+              :busy="storeUpload === 'banner'"
+              :disabled="!can('store.profile.edit')"
+              :error="storeUploadErrors.banner"
+              :browse-label="t('store.browse')"
+              :drop-hint="t('store.uploadDropHint')"
+              :uploading-label="t('store.uploading')"
+              :uploading-hint="t('store.uploadingHint')"
+              :clear-label="t('store.clearBanner')"
+              @select="uploadStoreImage('banner', $event)"
+              @clear="clearStoreImage('banner')"
+            />
+          </article>
+        </section>
         <div class="grid"><label><span>{{ t('store.name') }}</span><input v-model="form.name" :disabled="!can('store.profile.edit')" required minlength="2"></label><label><span>{{ t('store.slug') }}</span><input v-model="form.slug" :disabled="!can('store.profile.edit')" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*"></label><label class="full"><span>{{ t('store.description') }}</span><textarea v-model="form.description" :disabled="!can('store.profile.edit')" rows="4" /></label><label><span>{{ t('store.serviceEmail') }}</span><input v-model="form.customerServiceEmail" :disabled="!can('store.profile.edit')" type="email"></label><label><span>{{ t('store.servicePhone') }}</span><input v-model="form.customerServicePhone" :disabled="!can('store.profile.edit')"></label></div>
         <h3>{{ t('store.returnAddress') }}</h3>
         <div class="grid"><label><span>{{ t('store.recipient') }}</span><input v-model="form.returnAddress.recipient" :disabled="!can('store.profile.edit')" required></label><label><span>{{ t('store.phone') }}</span><input v-model="form.returnAddress.phone" :disabled="!can('store.profile.edit')" required></label><label><span>{{ t('store.country') }}</span><input v-model="form.returnAddress.country" :disabled="!can('store.profile.edit')" required></label><label><span>{{ t('store.province') }}</span><input v-model="form.returnAddress.province" :disabled="!can('store.profile.edit')" required></label><label><span>{{ t('store.city') }}</span><input v-model="form.returnAddress.city" :disabled="!can('store.profile.edit')" required></label><label><span>{{ t('store.district') }}</span><input v-model="form.returnAddress.district" :disabled="!can('store.profile.edit')" required></label><label class="full"><span>{{ t('store.addressLine') }}</span><input v-model="form.returnAddress.addressLine" :disabled="!can('store.profile.edit')" required></label><label><span>{{ t('store.postalCode') }}</span><input v-model="form.returnAddress.postalCode" :disabled="!can('store.profile.edit')"></label></div>
@@ -121,8 +210,8 @@ onMounted(load);
 </template>
 
 <style scoped lang="less">
-.store-page{background:var(--shell-bg);color:var(--text)}.page-shell{width:min(1320px,100%);margin:auto}.hero{display:flex;align-items:center;justify-content:space-between;padding:28px 34px;margin-bottom:20px;border:1px solid var(--border);border-radius:20px;background:linear-gradient(120deg,var(--accent-soft),var(--surface) 60%);box-shadow:0 8px 30px rgba(38,45,80,.04)}.hero span,.modal header small{color:var(--accent);font-size:10px;font-weight:800;letter-spacing:.16em}.hero h1{margin:8px 0 5px;font-size:30px}.hero p{margin:0;color:var(--text-muted);font-size:12px}.panel{padding:26px;border:1px solid var(--border);border-radius:17px;background:var(--surface);box-shadow:var(--shadow)}.profile{max-width:960px;margin:auto}.profile h2{margin-top:0}.profile h3{padding-top:22px;margin-top:25px;border-top:1px solid var(--border)}.grid,.dialog-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.full{grid-column:1/-1}label{display:grid;gap:7px}label>span{color:var(--text-secondary);font-size:11px}input,textarea,select{width:100%;padding:12px 13px;border:1px solid var(--border);border-radius:10px;outline:none;background:var(--surface-raised);color:var(--text);transition:.2s}input:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}button{border:0;cursor:pointer}.primary{padding:12px 18px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700}.profile>.primary{margin-top:22px}.add-button{white-space:nowrap}.switch{display:flex;align-items:center;gap:9px}.switch input{display:none}.switch i{position:relative;width:42px;height:23px;border-radius:20px;background:var(--border)}.switch i:after{position:absolute;width:17px;height:17px;left:3px;top:3px;border-radius:50%;background:#fff;content:"";transition:.2s}.switch input:checked+i{background:var(--success)}.switch input:checked+i:after{transform:translateX(19px)}.switch b{font-size:11px}.feedback,.loading{margin-bottom:18px;padding:12px 15px;border-radius:10px;background:var(--success-soft);color:var(--success)}.feedback.error{background:var(--danger-soft);color:var(--danger)}.team-workspace{display:grid;gap:16px}.filters{display:grid;grid-template-columns:minmax(260px,1fr) 160px 210px auto;gap:12px;padding:16px}.search{position:relative}.search span{position:absolute;left:14px;top:11px;color:var(--text-muted);font-size:18px}.search input{padding-left:40px}.filters button{padding:0 18px;border-radius:10px;background:var(--surface-raised);color:var(--text-secondary)}.member-list{padding:0;overflow:hidden}.list-head{display:flex;align-items:center;justify-content:space-between;padding:22px 24px;border-bottom:1px solid var(--border)}.list-head h2{margin:0 0 4px}.list-head p{margin:0;color:var(--text-muted);font-size:12px}.member-list :deep(.table-wrap){min-width:850px}.member-list :deep(th),.member-list :deep(td){padding:15px 20px}.identity{display:flex;align-items:center;gap:11px}.identity>span,.member-hero>span{display:grid;width:38px;height:38px;place-items:center;border-radius:11px;background:linear-gradient(135deg,var(--accent),#8a67f6);color:#fff;font-weight:800}.identity div{display:grid;gap:3px}.identity small{color:var(--text-muted)}.member-list em{padding:5px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-style:normal;font-weight:700}.permission-summary{display:flex;gap:5px;flex-wrap:wrap}.permission-summary i{padding:4px 7px;border-radius:6px;background:var(--surface-raised);color:var(--text-secondary);font-style:normal;font-size:10px}.permission-summary span{color:var(--text-muted)}.actions{display:flex;justify-content:flex-end;gap:5px}.actions button{padding:6px 9px;border-radius:7px;background:var(--surface-raised);color:var(--text-secondary)}.actions .danger{background:var(--danger-soft);color:var(--danger)}
+.store-page{background:var(--shell-bg);color:var(--text)}.page-shell{width:min(1320px,100%);margin:auto}.hero{display:flex;align-items:center;justify-content:space-between;padding:28px 34px;margin-bottom:20px;border:1px solid var(--border);border-radius:20px;background:linear-gradient(120deg,var(--accent-soft),var(--surface) 60%);box-shadow:0 8px 30px rgba(38,45,80,.04)}.hero span,.modal header small{color:var(--accent);font-size:10px;font-weight:800;letter-spacing:.16em}.hero h1{margin:8px 0 5px;font-size:30px}.hero p{margin:0;color:var(--text-muted);font-size:12px}.panel{padding:26px;border:1px solid var(--border);border-radius:17px;background:var(--surface);box-shadow:var(--shadow)}.profile{max-width:960px;margin:auto}.profile h2{margin-top:0}.profile h3{padding-top:22px;margin-top:25px;border-top:1px solid var(--border)}.branding{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:16px;padding-bottom:24px;margin-bottom:24px;border-bottom:1px solid var(--border)}.brand-card{display:grid;align-content:start;gap:11px;padding:15px;border:1px solid var(--border);border-radius:13px;background:var(--surface-raised)}.brand-card>header b{display:block;font-size:12px}.brand-card>header small{display:block;margin-top:4px;color:var(--text-muted);font-size:10px;line-height:1.45}.brand-preview{display:grid;width:100%;height:190px;place-items:center;overflow:hidden;border:1px solid var(--border);border-radius:10px;background:var(--surface)}.logo-preview{height:190px}.brand-preview img{width:100%;height:100%;object-fit:contain}.banner-preview img{object-fit:cover}.preview-error{padding:10px 12px;margin:0;border-radius:9px;background:var(--danger-soft);color:var(--danger);font-size:10px}.grid,.dialog-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.full{grid-column:1/-1}label{display:grid;gap:7px}label>span{color:var(--text-secondary);font-size:11px}input,textarea,select{width:100%;padding:12px 13px;border:1px solid var(--border);border-radius:10px;outline:none;background:var(--surface-raised);color:var(--text);transition:.2s}input:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}button{border:0;cursor:pointer}.primary{padding:12px 18px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700}.profile>.primary{margin-top:22px}.add-button{white-space:nowrap}.switch{display:flex;align-items:center;gap:9px}.switch input{display:none}.switch i{position:relative;width:42px;height:23px;border-radius:20px;background:var(--border)}.switch i:after{position:absolute;width:17px;height:17px;left:3px;top:3px;border-radius:50%;background:#fff;content:"";transition:.2s}.switch input:checked+i{background:var(--success)}.switch input:checked+i:after{transform:translateX(19px)}.switch b{font-size:11px}.feedback,.loading{margin-bottom:18px;padding:12px 15px;border-radius:10px;background:var(--success-soft);color:var(--success)}.feedback.error{background:var(--danger-soft);color:var(--danger)}.team-workspace{display:grid;gap:16px}.filters{display:grid;grid-template-columns:minmax(260px,1fr) 160px 210px auto;gap:12px;padding:16px}.search{position:relative}.search span{position:absolute;left:14px;top:11px;color:var(--text-muted);font-size:18px}.search input{padding-left:40px}.filters button{padding:0 18px;border-radius:10px;background:var(--surface-raised);color:var(--text-secondary)}.member-list{padding:0;overflow:hidden}.list-head{display:flex;align-items:center;justify-content:space-between;padding:22px 24px;border-bottom:1px solid var(--border)}.list-head h2{margin:0 0 4px}.list-head p{margin:0;color:var(--text-muted);font-size:12px}.member-list :deep(.table-wrap){min-width:850px}.member-list :deep(th),.member-list :deep(td){padding:15px 20px}.identity{display:flex;align-items:center;gap:11px}.identity>span,.member-hero>span{display:grid;width:38px;height:38px;place-items:center;border-radius:11px;background:linear-gradient(135deg,var(--accent),#8a67f6);color:#fff;font-weight:800}.identity div{display:grid;gap:3px}.identity small{color:var(--text-muted)}.member-list em{padding:5px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-style:normal;font-weight:700}.permission-summary{display:flex;gap:5px;flex-wrap:wrap}.permission-summary i{padding:4px 7px;border-radius:6px;background:var(--surface-raised);color:var(--text-secondary);font-style:normal;font-size:10px}.permission-summary span{color:var(--text-muted)}.actions{display:flex;justify-content:flex-end;gap:5px}.actions button{padding:6px 9px;border-radius:7px;background:var(--surface-raised);color:var(--text-secondary)}.actions .danger{background:var(--danger-soft);color:var(--danger)}
 .modal-mask{position:fixed;z-index:1000;inset:0;display:grid;place-items:center;padding:24px;background:rgba(14,18,35,.5);backdrop-filter:blur(5px)}.modal{width:min(850px,100%);max-height:calc(100dvh - 48px);overflow:auto;border:1px solid var(--border);border-radius:20px;background:var(--surface);box-shadow:0 28px 80px rgba(12,16,35,.25)}.modal>header{position:sticky;z-index:2;top:0;display:flex;align-items:center;justify-content:space-between;padding:22px 26px;border-bottom:1px solid var(--border);background:var(--surface)}.modal header h2{margin:6px 0 0}.modal header>button{width:34px;height:34px;border-radius:9px;background:var(--surface-raised);color:var(--text-secondary);font-size:22px}.modal form,.member-dialog{padding:24px}.permission-block{padding-top:22px;margin-top:22px;border-top:1px solid var(--border)}.permission-block h3{margin:0 0 4px}.permission-block>p{margin:0 0 14px;color:var(--text-muted);font-size:11px}.check-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.check-grid label{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface-raised);cursor:pointer}.check-grid label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}.check-grid input{width:16px;height:16px;accent-color:var(--accent)}.check-grid span{display:grid;gap:2px}.check-grid b{color:var(--text);font-size:12px}.check-grid small{color:var(--text-muted);font-size:9px}.check-grid .disabled{cursor:default;opacity:.82}.modal footer{display:flex;justify-content:flex-end;gap:10px;padding-top:22px;margin-top:22px;border-top:1px solid var(--border)}.modal footer button:not(.primary){padding:11px 17px;border-radius:9px;background:var(--surface-raised);color:var(--text-secondary)}.member-hero{display:flex;align-items:center;gap:12px;padding:16px;border-radius:13px;background:var(--surface-raised)}.member-hero>span{width:46px;height:46px}.member-hero h3,.member-hero p{margin:0}.member-hero p{margin-top:4px;color:var(--text-muted);font-size:11px}
 .actions,.actions button{white-space:nowrap}.modal footer{position:sticky;bottom:-24px;z-index:1;background:var(--surface)}
-@media(max-width:850px){.filters{grid-template-columns:1fr 1fr}.search{grid-column:1/-1}.check-grid{grid-template-columns:1fr}}@media(max-width:600px){.hero{align-items:flex-start;flex-direction:column;gap:18px;padding:22px}.grid,.dialog-grid,.filters{grid-template-columns:1fr}.search{grid-column:auto}.full{grid-column:auto}.modal-mask{padding:10px}.modal{max-height:calc(100dvh - 20px)}}
+@media(max-width:850px){.branding,.filters{grid-template-columns:1fr}.search{grid-column:1/-1}.check-grid{grid-template-columns:1fr}}@media(max-width:600px){.hero{align-items:flex-start;flex-direction:column;gap:18px;padding:22px}.grid,.dialog-grid,.filters{grid-template-columns:1fr}.search{grid-column:auto}.full{grid-column:auto}.modal-mask{padding:10px}.modal{max-height:calc(100dvh - 20px)}}
 </style>

@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import { UiButton, UiField, UiFileUpload, UiForm, UiFormSection, UiInput, UiSelect, UiTextarea, type UiFormRules } from "@moecraft/ui";
 import type { CatalogOverview, ProductDraftInput, ProductReviewEventView, ProductStatus } from "@moecraft/shared";
 import { uploadFile } from "../../../../api";
+import { useFilePreview } from "../../../../composables/useFilePreview";
 import { useLocale } from "../../../../i18n";
 import { productStatusKeys } from "../productI18n";
 
@@ -13,6 +14,11 @@ const uploadingIndex = ref<number | null>(null);
 const uploadErrors = ref<Record<number, string>>({});
 const validationError = ref("");
 const characters = computed(() => props.catalog?.characters.filter(item => !props.modelValue.franchiseId || item.franchiseId === props.modelValue.franchiseId) ?? []);
+const previews = useFilePreview();
+
+props.modelValue.media.forEach((media) => {
+  if (media.fileId) void previews.showFileId(media, media.fileId);
+});
 
 function catalogName(item: { nameZhCn: string; nameEnUs: string | null }) { return locale.value === "en-US" ? item.nameEnUs || item.nameZhCn : item.nameZhCn || item.nameEnUs || ""; }
 function statusLabel(status: ProductStatus) { return t(productStatusKeys[status]); }
@@ -37,25 +43,39 @@ function removeSku(index: number) { if (props.modelValue.skus.length > 1) props.
 function addMedia() { props.modelValue.media.push({ fileId: "", kind: "IMAGE", sortOrder: props.modelValue.media.length, isCover: !props.modelValue.media.length }); }
 function removeMedia(index: number) {
   if (props.modelValue.media.length <= 1) return;
+  const removed = props.modelValue.media[index];
+  if (removed) previews.clearPreview(removed);
   const wasCover = props.modelValue.media[index]?.isCover;
   props.modelValue.media.splice(index, 1);
   props.modelValue.media.forEach((item, current) => item.sortOrder = current);
   if (wasCover && props.modelValue.media[0]) props.modelValue.media[0].isCover = true;
 }
 function setCover(index: number) { props.modelValue.media.forEach((item, current) => item.isCover = current === index); }
-function clearFile(index: number) { const media = props.modelValue.media[index]; if (media) media.fileId = ""; delete uploadErrors.value[index]; }
+function clearFile(index: number) {
+  const media = props.modelValue.media[index];
+  if (media) {
+    media.fileId = "";
+    previews.clearPreview(media);
+  }
+  delete uploadErrors.value[index];
+}
 function formSubmitted() { validationError.value = ""; emit("save"); }
 function formInvalid(errors: Record<string, string>) { validationError.value = Object.values(errors)[0] ?? ""; }
 async function registerFile(index: number, file: File) {
+  const media = props.modelValue.media[index];
+  if (!media) return;
+  const previousFileId = media.fileId;
   uploadingIndex.value = index;
   delete uploadErrors.value[index];
+  previews.showFile(media, file);
   try {
     const asset = await uploadFile<{ id: string }>("product-media", file);
-    const media = props.modelValue.media[index];
-    if (!media) return;
     media.fileId = asset.id;
     media.altZhCn ||= file.name.replace(/\.[^.]+$/, "");
   } catch {
+    media.fileId = previousFileId;
+    if (previousFileId) void previews.showFileId(media, previousFileId);
+    else previews.clearPreview(media);
     uploadErrors.value[index] = t("products.error.mediaUpload");
   } finally {
     uploadingIndex.value = null;
@@ -151,6 +171,10 @@ async function registerFile(index: number, file: File) {
                 </header>
                 <div class="media-grid">
                   <UiField :name="`media.${index}.fileId`" class="upload-field" :label="t('products.selectImage')" required>
+                    <div v-if="previews.previewUrl(media)" class="media-preview">
+                      <img :src="previews.previewUrl(media)" :alt="media.altZhCn || t('products.imagePreview')" />
+                    </div>
+                    <p v-else-if="previews.previewFailed(media)" class="preview-error" role="alert">{{ t('products.error.preview') }}</p>
                     <UiFileUpload
                       accept="image/jpeg,image/png,image/webp"
                       :current-name="media.fileId"
@@ -201,7 +225,7 @@ fieldset{display:grid;gap:16px;padding:0;margin:0;border:0}fieldset:disabled{opa
 .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px 16px}.form-grid.compact{align-items:start;padding:16px}.wide{grid-column:1/-1}.dimensions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
 .repeat-list{display:grid;gap:12px}.repeat-card{overflow:hidden;border:1px solid var(--border);border-radius:11px;background:color-mix(in srgb,var(--surface-raised) 58%,var(--surface));box-shadow:0 3px 10px rgb(31 45 74 / 4%)}
 .repeat-header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 14px;border-bottom:1px solid var(--border);background:var(--surface)}.repeat-header>div{display:flex;align-items:center;gap:9px}.repeat-header span{display:grid;width:26px;height:26px;place-items:center;border-radius:7px;background:var(--accent-soft);color:var(--accent);font-size:9px;font-weight:750}.repeat-header b{font-size:12px}
-.media-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(130px,.7fr) minmax(0,1fr) 100px;gap:14px;padding:16px}.upload-field{grid-row:span 2}.media-actions{display:flex;justify-content:flex-end;padding:0 16px 16px}
+.media-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(130px,.7fr) minmax(0,1fr) 100px;gap:14px;padding:16px}.upload-field{grid-row:span 2}.media-preview{display:grid;width:100%;height:180px;place-items:center;overflow:hidden;margin-bottom:10px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}.media-preview img{width:100%;height:100%;object-fit:contain}.preview-error{padding:10px 12px;margin:0 0 10px;border-radius:9px;background:var(--danger-soft);color:var(--danger);font-size:10px}.media-actions{display:flex;justify-content:flex-end;padding:0 16px 16px}
 .drawer-footer{display:flex;flex:0 0 auto;align-items:center;justify-content:flex-end;gap:10px;padding:14px 24px;border-top:1px solid var(--border);background:var(--surface);box-shadow:0 -8px 22px rgb(31 45 74 / 6%)}.drawer-footer>span{margin-right:auto;color:var(--text-muted);font-size:10px}
 @media(max-width:760px){.drawer{width:100vw}.scroll{padding:16px}.form-grid,.media-grid{grid-template-columns:1fr}.wide,.upload-field{grid-column:auto;grid-row:auto}.drawer-footer>span{display:none}}
 @media(max-width:480px){.drawer-header{padding:18px}.repeat-header{align-items:flex-start}.dimensions{grid-template-columns:1fr}.drawer-footer{padding:12px 16px}.drawer-footer :deep(button){flex:1}}

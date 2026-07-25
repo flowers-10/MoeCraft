@@ -19,7 +19,7 @@ async function refresh() {
   return refreshInFlight;
 }
 
-export async function apiRequest<T>(path: string, init: RequestInit = {}) {
+export async function apiFetch(path: string, init: RequestInit = {}) {
   const execute = (token: string | null) => {
     const headers = new Headers(init.headers);
     const isFormData = typeof FormData !== "undefined" && init.body instanceof FormData;
@@ -37,6 +37,11 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}) {
     const error = await response.json().catch(() => null) as ApiErrorResponse | null;
     throw { code: error?.code ?? "REQUEST_FAILED", message: error?.message ?? response.statusText, status: response.status } satisfies ApiError;
   }
+  return response;
+}
+
+export async function apiRequest<T>(path: string, init: RequestInit = {}) {
+  const response = await apiFetch(path, init);
   const body = await response.text();
   if (!body) return null as T;
   const envelope = JSON.parse(body) as ApiResponse<T>;
@@ -48,4 +53,12 @@ export async function uploadFile<T = { id: string }>(purpose: string, file: File
   formData.append("purpose", purpose);
   formData.append("file", file);
   return apiRequest<T>("/files", { method: "POST", body: formData });
+}
+
+export async function downloadFileBlob(fileId: string, signal?: AbortSignal) {
+  const response = await apiFetch(`/files/${encodeURIComponent(fileId)}`, {
+    headers: { Accept: "image/*" },
+    signal
+  });
+  return response.blob();
 }
