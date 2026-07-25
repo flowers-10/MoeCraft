@@ -1,9 +1,10 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { BadRequestException, ConflictException, ForbiddenException, NotFoundException, ServiceUnavailableException, UnauthorizedException, type ExecutionContext } from "@nestjs/common";
+import { BadRequestException, ConflictException, ForbiddenException, NotFoundException, ServiceUnavailableException, StreamableFile, UnauthorizedException, type ExecutionContext } from "@nestjs/common";
 import type { Reflector } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
+import { firstValueFrom, of } from "rxjs";
 import { AppService } from "../src/app.service";
 import { AuthService } from "../src/auth/auth.service";
 import { AuthorizationGuard, assertMerchantScope, rolesHavePermissions, type RequestPrincipal } from "../src/auth/authorization";
@@ -11,6 +12,7 @@ import { FilesService, type UploadedFilePayload } from "../src/files/files.servi
 import { CatalogService } from "../src/catalog/catalog.service";
 import { LocalObjectStorageService } from "../src/files/local-object-storage.service";
 import { resolveApiErrorCode } from "../src/http/api-error-code";
+import { ApiResponseInterceptor } from "../src/http/api-response.interceptor";
 import { applyInventoryDelta, InvalidInventoryMutationError } from "../src/inventory/inventory-domain";
 import { InventoryService } from "../src/inventory/inventory.service";
 import { canTransitionMerchantApplication } from "../src/merchants/merchant-onboarding-workflow";
@@ -22,6 +24,20 @@ import { REQUIRED_DATABASE_MIGRATION } from "../src/prisma/schema-version";
 
 type GuardRequest = { headers: { authorization?: string }; user?: RequestPrincipal };
 type GuardMetadata = Partial<Record<"roles" | "permissions" | "adminRoute" | "adminButton", unknown>>;
+
+test("API response interceptor leaves file streams unwrapped", async () => {
+  const stream = new StreamableFile(Buffer.from("image-bytes"), { type: "image/png" });
+  const request = { headers: {} as Record<string, string | string[] | undefined> };
+  const response = { setHeader() {} };
+  const context = {
+    switchToHttp: () => ({ getRequest: () => request, getResponse: () => response })
+  } as unknown as ExecutionContext;
+  const interceptor = new ApiResponseInterceptor();
+
+  const result = await firstValueFrom(interceptor.intercept(context, { handle: () => of(stream) }));
+
+  assert.equal(result, stream);
+});
 
 function createGuardContext(metadata: GuardMetadata, databaseUser: unknown, authorization?: string) {
   const values = new Map(Object.entries(metadata));
