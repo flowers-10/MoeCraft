@@ -7,17 +7,28 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const apiDirectory = resolve(root, "apps/api");
 const migrationsDirectory = resolve(apiDirectory, "prisma/migrations");
 const schemaPath = resolve(apiDirectory, "prisma/schema.prisma");
+const schemaVersionPath = resolve(apiDirectory, "src/prisma/schema-version.ts");
 
-if (!existsSync(schemaPath) || !existsSync(resolve(migrationsDirectory, "migration_lock.toml"))) {
-  console.error("Prisma schema or migration lock is missing");
+if (!existsSync(schemaPath) || !existsSync(schemaVersionPath) || !existsSync(resolve(migrationsDirectory, "migration_lock.toml"))) {
+  console.error("Prisma schema, schema version contract, or migration lock is missing");
   process.exit(1);
 }
 
-const migrations = readdirSync(migrationsDirectory, { withFileTypes: true })
+const migrationNames = readdirSync(migrationsDirectory, { withFileTypes: true })
   .filter((entry) => entry.isDirectory())
-  .map((entry) => resolve(migrationsDirectory, entry.name, "migration.sql"));
+  .map((entry) => entry.name)
+  .sort();
+const migrations = migrationNames.map((name) => resolve(migrationsDirectory, name, "migration.sql"));
 if (migrations.length === 0 || migrations.some((file) => !existsSync(file) || readFileSync(file, "utf8").trim().length === 0)) {
   console.error("Every Prisma migration directory must contain a non-empty migration.sql");
+  process.exit(1);
+}
+
+const schemaVersionSource = readFileSync(schemaVersionPath, "utf8");
+const versionMatches = [...schemaVersionSource.matchAll(/export const REQUIRED_DATABASE_MIGRATION\s*=\s*"([^"]+)"\s*;/gu)];
+const latestMigration = migrationNames.at(-1);
+if (versionMatches.length !== 1 || versionMatches[0][1] !== latestMigration) {
+  console.error(`REQUIRED_DATABASE_MIGRATION must match latest Prisma migration: ${latestMigration}`);
   process.exit(1);
 }
 

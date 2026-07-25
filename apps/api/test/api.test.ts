@@ -18,6 +18,7 @@ import { ApiMetricsService } from "../src/observability/api-metrics.service";
 import { ensureTraceContext } from "../src/observability/trace-context";
 import { canTransitionProduct } from "../src/products/product-workflow";
 import { PrismaService } from "../src/prisma/prisma.service";
+import { REQUIRED_DATABASE_MIGRATION } from "../src/prisma/schema-version";
 
 type GuardRequest = { headers: { authorization?: string }; user?: RequestPrincipal };
 type GuardMetadata = Partial<Record<"roles" | "permissions" | "adminRoute" | "adminButton", unknown>>;
@@ -93,14 +94,20 @@ function createInventoryPrisma(options: { conflict?: boolean; failLedger?: boole
 
 test("health stays lightweight while readiness probes the database", async () => {
   let probes = 0;
-  const prisma = { $queryRaw: async () => { probes += 1; } } as unknown as PrismaService;
+  const prisma = {
+    $queryRaw: async () => {
+      probes += 1;
+      return probes === 2 ? [{ migration_name: REQUIRED_DATABASE_MIGRATION }] : [{ connected: 1 }];
+    }
+  } as unknown as PrismaService;
   const app = new AppService(prisma, new ApiMetricsService());
 
   assert.equal(app.getHealth().status, "ok");
   assert.equal(probes, 0);
   const readiness = await app.getReadiness();
   assert.equal(readiness.dependencies.database, "ok");
-  assert.equal(probes, 1);
+  assert.equal(readiness.dependencies.migrations, "ok");
+  assert.equal(probes, 2);
 });
 
 test("readiness returns a stable unavailable error when the database probe fails", async () => {
@@ -111,6 +118,23 @@ test("readiness returns a stable unavailable error when the database probe fails
     () => app.getReadiness(),
     (error: unknown) => error instanceof ServiceUnavailableException && error.message === "READINESS_FAILED"
   );
+});
+
+test("readiness rejects a database missing the required migration", async () => {
+  let probes = 0;
+  const prisma = {
+    $queryRaw: async () => {
+      probes += 1;
+      return probes === 2 ? [] : [{ connected: 1 }];
+    }
+  } as unknown as PrismaService;
+  const app = new AppService(prisma, new ApiMetricsService());
+
+  await assert.rejects(
+    () => app.getReadiness(),
+    (error: unknown) => error instanceof ServiceUnavailableException && error.message === "READINESS_FAILED"
+  );
+  assert.equal(probes, 2);
 });
 
 test("request metrics aggregate status buckets without route-level cardinality", () => {

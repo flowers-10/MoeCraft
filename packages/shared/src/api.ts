@@ -10,7 +10,7 @@ export type AppReadiness = Readonly<{
   name: string;
   status: "ok";
   time: IsoDateTime;
-  dependencies: Readonly<{ database: "ok" }>;
+  dependencies: Readonly<{ database: "ok"; migrations: "ok" }>;
 }>;
 
 export type ApiResponse<Data> = Readonly<{

@@ -17,12 +17,12 @@ docker inspect --format='{{index .RepoDigests 0}}' ghcr.io/<organization>/moecra
 1. 从 `deploy/staging.env.example` 创建未跟踪的 `deploy/staging.env`，把 `API_IMAGE` 固定到 digest。
 2. 运行 CI 全部门禁；发布提交必须可追溯到已通过的 workflow run。
 3. 发布前执行数据库备份，并记录文件校验和、存储位置与恢复期限。
-4. 使用 staging 的 `DATABASE_URL` 执行 `pnpm --filter @moecraft/api db:deploy`。迁移必须遵守 expand/migrate/contract，新旧两个应用版本都能在本次 schema 上运行。
+4. 使用 staging 的 `DATABASE_URL` 执行 `pnpm --filter @moecraft/api db:deploy`，再执行 `pnpm --filter @moecraft/api exec prisma migrate status`。迁移必须遵守 expand/migrate/contract，新旧两个应用版本都能在本次 schema 上运行。
 5. 执行 `docker compose --env-file deploy/staging.env -f deploy/docker-compose.staging.yml up -d`。
 6. 确认 `/health`、`/readiness`、登录、RBAC 和商品审核路径，再开放 staging 流量。
 7. 支付/退款、邮件和对象存储尚无真实 provider；接入对应业务模块后，必须在独立沙箱完成验签、最小权限和失败重试演练，当前不得勾选这些上线项。
 
-生产编排器使用 readiness gate 和 `maxUnavailable=0` 的滚动发布；需要蓝绿时并行部署新 digest，完成 smoke check 后只切换路由。不得让应用启动命令自动执行迁移。
+生产编排器使用 readiness gate 和 `maxUnavailable=0` 的滚动发布；需要蓝绿时并行部署新 digest，完成 smoke check 后只切换路由。readiness 会验证数据库连接以及 API 要求的最新迁移，缺失或未完成迁移时返回 503。不得让应用启动命令自动执行迁移；`db:prepare` 仅用于本地开发，生产发布始终使用独立的 `db:deploy` 步骤。
 
 ## 快速回滚
 

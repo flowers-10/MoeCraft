@@ -3,7 +3,7 @@
 ## 信号与入口
 
 - `/health`：存活检查，不访问数据库。
-- `/readiness`：就绪检查，执行轻量数据库探针；失败返回 `503 READINESS_FAILED`。
+- `/readiness`：就绪检查，同时验证数据库连接和 API 要求的最新 Prisma 迁移；任一失败均返回 `503 READINESS_FAILED`。
 - `/api/v1/metrics`：仅 `system:manage` 可读，返回请求总数、5xx 数量、状态分组、平均耗时和进程运行时间。
 - `/api/openapi.json`：运行时 OpenAPI；仓库基线位于 `apps/api/openapi/api-v1.json`。
 - HTTP 响应透传 `X-Request-Id` 和 W3C `traceparent`；日志包含 `requestId`、`traceId`、状态与耗时。
@@ -23,6 +23,8 @@
 | 队列死信 | 0 个未确认超过 15 分钟 | 达到阈值触发 P2 |
 
 交易指标在订单、支付和库存模块落地时追加；不得用当前缺少业务数据的指标伪造上线容量结论。
+
+本地执行 API `dev` 时，`predev` 会先运行 `db:prepare`，生成 Prisma Client 并通过 `prisma migrate deploy` 应用仓库中已有迁移。若 readiness 因迁移失败，应先运行 `pnpm --filter @moecraft/api exec prisma migrate status` 检查状态；不得通过 reset 数据库或修改历史迁移恢复生产服务。
 
 ## 数据边界
 

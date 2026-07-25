@@ -21,7 +21,7 @@ jobs:
         image: mysql:8.4
         env:
           MYSQL_ROOT_PASSWORD: ci-root-password
-          MYSQL_DATABASE: moecraft_shadow
+          MYSQL_DATABASE: moecraft
         ports:
           - 3306:3306
         options: >-
@@ -50,7 +50,10 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+      - run: mysql --protocol=TCP -h 127.0.0.1 -uroot -pci-root-password -e "CREATE DATABASE IF NOT EXISTS moecraft_shadow"
       - run: pnpm --filter @moecraft/api db:generate
+      - run: pnpm --filter @moecraft/api db:deploy
+      - run: pnpm --filter @moecraft/api exec prisma migrate status
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
