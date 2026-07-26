@@ -15,6 +15,7 @@ import { resolveApiErrorCode } from "../src/http/api-error-code";
 import { ApiResponseInterceptor } from "../src/http/api-response.interceptor";
 import { applyInventoryDelta, InvalidInventoryMutationError } from "../src/inventory/inventory-domain";
 import { InventoryService } from "../src/inventory/inventory.service";
+import { clampCartQuantity, evaluateCartItem, mergeCartLines, normalizeGuestLines, type SellableSkuSnapshot } from "../src/cart/cart-domain";
 import { canTransitionMerchantApplication } from "../src/merchants/merchant-onboarding-workflow";
 import { ApiMetricsService } from "../src/observability/api-metrics.service";
 import { ensureTraceContext } from "../src/observability/trace-context";
@@ -429,3 +430,93 @@ test("API errors preserve domain codes and use safe generic fallbacks", () => {
   assert.equal(resolveApiErrorCode(400, { message: "PRODUCT_REVIEW_INCOMPLETE:categoryId,media.cover" }), "PRODUCT_REVIEW_INCOMPLETE");
   assert.equal(resolveApiErrorCode(500, { message: "database connection details" }), "INTERNAL_ERROR");
 });
+
+function sellable(overrides: Partial<SellableSkuSnapshot> = {}): SellableSkuSnapshot {
+  return {
+    skuId: "sku-1",
+    productId: "product-1",
+    productTitleZhCn: "手办",
+    productTitleEnUs: null,
+    skuNameZhCn: "标准版",
+    skuNameEnUs: null,
+    skuCode: "STD-001",
+    coverFileId: null,
+    unitPriceAmount: 12900,
+    currency: "CNY",
+    available: 10,
+    purchaseLimit: null,
+    isActive: true,
+    productStatus: "ACTIVE",
+    saleType: "IN_STOCK",
+    storeId: "store-1",
+    storeName: "店铺",
+    storeSlug: "store",
+    storeIsOpen: true,
+    merchantId: "merchant-1",
+    merchantStatus: "ACTIVE",
+    ...overrides
+  };
+}
+
+test("cart quantity clamping respects stock, purchase limit and the hard ceiling", () => {
+  assert.equal(clampCartQuantity(3, 10, null), 3);
+  assert.equal(clampCartQuantity(20, 10, null), 10, "stock caps the quantity");
+  assert.equal(clampCartQuantity(20, 100, 5), 5, "purchase limit wins over stock");
+  assert.equal(clampCartQuantity(0, 10, null), 0, "zero drops out");
+  assert.equal(clampCartQuantity(500, 10, null), 10, "stock caps even huge inputs before the 99 ceiling");
+  assert.equal(clampCartQuantity(20, 100, null), 20, "no limit and ample stock keeps the request");
+});
+
+test("cart item evaluation flags sellability failures with stable reasons", () => {
+  assert.deepEqual(evaluateCartItem(sellable(), 2), { valid: true, invalidReason: null, effectiveQuantity: 2 });
+  assert.equal(evaluateCartItem(sellable({ isActive: false }), 2).invalidReason, "SKU_INACTIVE");
+  assert.equal(evaluateCartItem(sellable({ productStatus: "INACTIVE" }), 2).invalidReason, "PRODUCT_NOT_SELLABLE");
+  assert.equal(evaluateCartItem(sellable({ storeIsOpen: false }), 2).invalidReason, "STORE_CLOSED");
+  assert.equal(evaluateCartItem(sellable({ merchantStatus: "SUSPENDED" }), 2).invalidReason, "MERCHANT_INACTIVE");
+  assert.equal(evaluateCartItem(sellable({ available: 0 }), 2).invalidReason, "OUT_OF_STOCK");
+  assert.equal(evaluateCartItem(sellable({ purchaseLimit: 1 }), 2).invalidReason, "PURCHASE_LIMIT_EXCEEDED");
+  assert.equal(evaluateCartItem(sellable({ available: 3 }), 5).invalidReason, "QUANTITY_EXCEEDS_STOCK");
+  assert.equal(evaluateCartItem(null, 2).invalidReason, "SKU_NOT_FOUND");
+});
+
+test("guest cart lines collapse duplicate SKUs and skip junk entries", () => {
+  const lines = normalizeGuestLines([
+    { skuId: "sku-1", quantity: 2 },
+    { skuId: "sku-1", quantity: 3, selected: false },
+    { skuId: "sku-2", quantity: 1 },
+    { skuId: "", quantity: 1 },
+    { skuId: "sku-3", quantity: 0 }
+  ]);
+  assert.deepEqual(lines, [
+    { skuId: "sku-1", quantity: 5, selected: true },
+    { skuId: "sku-2", quantity: 1, selected: true }
+  ]);
+});
+
+test("cart merge sums overlapping SKUs, clamps by stock and surfaces notices", () => {
+  const sellableMap = new Map([
+    ["sku-1", sellable({ available: 4 })],
+    ["sku-2", sellable({ skuId: "sku-2", purchaseLimit: 2 })]
+  ]);
+  const result = mergeCartLines(
+    [{ skuId: "sku-1", quantity: 2, selected: false }],
+    [
+      { skuId: "sku-1", quantity: 4, selected: true },
+      { skuId: "sku-2", quantity: 5, selected: true },
+      { skuId: "sku-3", quantity: 1, selected: true }
+    ],
+    sellableMap
+  );
+
+  const sku1 = result.items.find((item) => item.skuId === "sku-1");
+  const sku2 = result.items.find((item) => item.skuId === "sku-2");
+  const sku3 = result.items.find((item) => item.skuId === "sku-3");
+  assert.equal(sku1?.quantity, 4, "merged quantity clamped to stock");
+  assert.equal(sku1?.selected, true, "selection follows either side");
+  assert.equal(sku2?.quantity, 2, "guest-only line clamped to purchase limit");
+  assert.equal(sku3?.quantity, 1, "unknown SKU without a snapshot is carried; the service layer filters it");
+
+  const codes = [...new Set(result.notices.map((notice) => notice.code))].sort();
+  assert.deepEqual(codes, ["GUEST_ITEM_ADDED", "QUANTITY_CLAMPED", "QUANTITY_MERGED"]);
+});
+

@@ -94,6 +94,7 @@ model User {
   roles        UserRole[]
   sessions     Session[]
   resetTokens  PasswordResetToken[]
+  cart         Cart?
   merchantApplications MerchantApplication[] @relation("MerchantApplicant")
   reviewedMerchantApplications MerchantApplication[] @relation("MerchantReviewer")
   applicationTimeline MerchantApplicationTimeline[]
@@ -435,14 +436,43 @@ model Sku {
   heightMm    Int?
   priceAmount Int
   currency    String     @default("CNY") @db.Char(3)
+  purchaseLimit Int?
   isActive    Boolean    @default(true)
   product     Product    @relation(fields: [productId], references: [id], onDelete: Restrict)
   inventory   Inventory?
+  cartItems   CartItem[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
   @@index([productId])
   @@index([barcode])
+}
+
+model Cart {
+  id         String     @id @default(cuid())
+  userId     String?    @unique
+  guestToken String?    @unique @db.VarChar(64)
+  user       User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items      CartItem[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([guestToken])
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  skuId     String
+  quantity  Int
+  selected  Boolean  @default(true)
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  sku       Sku      @relation(fields: [skuId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, skuId])
+  @@index([skuId])
 }
 
 model ProductMedia {

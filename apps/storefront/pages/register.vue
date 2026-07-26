@@ -3,15 +3,21 @@ const username = ref("");
 const displayName = ref("");
 const password = ref("");
 const error = ref("");
+const pending = ref(false);
 const session = useAuthSession();
+const route = useRoute();
 
 async function submit() {
   error.value = "";
+  pending.value = true;
   try {
     await session.register(username.value, displayName.value, password.value);
-    await navigateTo("/account");
+    const redirect = typeof route.query.redirect === "string" ? route.query.redirect : "";
+    await navigateTo(redirect && redirect.startsWith("/") ? redirect : "/");
   } catch {
     error.value = "注册失败，请检查账号和密码";
+  } finally {
+    pending.value = false;
   }
 }
 </script>
@@ -24,7 +30,7 @@ async function submit() {
       <label>昵称<input v-model="displayName" required /></label>
       <label>密码（至少 12 位）<input v-model="password" type="password" minlength="12" required /></label>
       <p v-if="error" role="alert">{{ error }}</p>
-      <button>注册</button>
+      <button :disabled="pending">{{ pending ? "注册中…" : "注册" }}</button>
       <NuxtLink to="/login">已有账号</NuxtLink>
     </form>
   </main>

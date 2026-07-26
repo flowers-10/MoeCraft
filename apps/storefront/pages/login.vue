@@ -4,13 +4,20 @@ const password = ref("");
 const pending = ref(false);
 const error = ref("");
 const session = useAuthSession();
+const cart = useCart();
+const route = useRoute();
 
 async function submit() {
   pending.value = true;
   error.value = "";
   try {
     await session.login(account.value, password.value);
-    await navigateTo("/account");
+    // Fold whatever the visitor collected into their account cart before leaving the page.
+    await cart.mergeGuest().catch(() => undefined);
+    // Head back to where they came from; only fall back to the homepage. Never allow
+    // an off-site URL here.
+    const redirect = typeof route.query.redirect === "string" ? route.query.redirect : "";
+    await navigateTo(redirect && redirect.startsWith("/") ? redirect : "/");
   } catch {
     error.value = "账号或密码错误";
   } finally {

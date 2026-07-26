@@ -1,1 +1,1 @@
-export const REQUIRED_DATABASE_MIGRATION = "20260723003000_g17_storefront_catalog";
+export const REQUIRED_DATABASE_MIGRATION = "20260725120000_g18_persistent_cart";
