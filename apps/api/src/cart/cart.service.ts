@@ -13,6 +13,7 @@ import type {
 } from "@moecraft/shared";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { roundYuan, toYuan } from "../money";
 import {
   CART_PRICE_DISCLAIMER,
   DEFAULT_CART_CURRENCY,
@@ -286,7 +287,7 @@ export class CartService {
         selectedAmount: item.selected && item.valid ? item.linePriceAmount : 0
       });
     }
-    const groups = [...groupMap.values()];
+    const groups = [...groupMap.values()].map((group) => ({ ...group, selectedAmount: roundYuan(group.selectedAmount) }));
     const selectedItems = items.filter((item) => item.selected);
     const validSelected = selectedItems.filter((item) => item.valid);
     return {
@@ -297,7 +298,7 @@ export class CartService {
       itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
       selectedCount: selectedItems.reduce((sum, item) => sum + item.quantity, 0),
       validSelectedCount: validSelected.reduce((sum, item) => sum + item.quantity, 0),
-      selectedAmount: validSelected.reduce((sum, item) => sum + item.linePriceAmount, 0),
+      selectedAmount: roundYuan(validSelected.reduce((sum, item) => sum + item.linePriceAmount, 0)),
       invalidCount: items.filter((item) => !item.valid).length,
       priceDisclaimer: CART_PRICE_DISCLAIMER,
       mergeNotices,
@@ -308,7 +309,7 @@ export class CartService {
   private itemView(item: CartRecord["items"][number]): CartItemView {
     const sellable = this.toSellable(item.sku);
     const evaluation = evaluateCartItem(sellable, item.quantity);
-    const unitPriceAmount = sellable?.unitPriceAmount ?? item.sku.priceAmount;
+    const unitPriceAmount = sellable?.unitPriceAmount ?? toYuan(item.sku.priceAmount);
     return {
       id: item.id,
       skuId: item.skuId,
@@ -322,7 +323,7 @@ export class CartService {
       quantity: item.quantity,
       selected: item.selected,
       unitPriceAmount,
-      linePriceAmount: unitPriceAmount * item.quantity,
+      linePriceAmount: roundYuan(unitPriceAmount * item.quantity),
       currency: item.sku.currency,
       available: sellable?.available ?? 0,
       purchaseLimit: item.sku.purchaseLimit,
@@ -349,7 +350,7 @@ export class CartService {
       skuNameEnUs: sku.nameEnUs,
       skuCode: sku.code,
       coverFileId: cover?.fileId ?? null,
-      unitPriceAmount: sku.priceAmount,
+      unitPriceAmount: toYuan(sku.priceAmount),
       currency: sku.currency,
       available,
       purchaseLimit: sku.purchaseLimit,
@@ -397,7 +398,7 @@ export class CartService {
         skuNameEnUs: sku.nameEnUs,
         skuCode: sku.code,
         coverFileId: cover?.fileId ?? null,
-        unitPriceAmount: sku.priceAmount,
+        unitPriceAmount: toYuan(sku.priceAmount),
         currency: sku.currency,
         available,
         purchaseLimit: sku.purchaseLimit,

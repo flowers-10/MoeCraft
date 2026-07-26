@@ -57,7 +57,7 @@ async function main(): Promise<void> {
             code: "DEMO-FIGURE-001",
             nameZhCn: "标准版",
             nameEnUs: "Standard Edition",
-            priceAmount: 129_900,
+            priceAmount: 1299,
             inventory: {
               create: {
                 onHand: 20,

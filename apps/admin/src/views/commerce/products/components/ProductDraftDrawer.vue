@@ -152,7 +152,7 @@ async function registerFile(index: number, file: File) {
                   <UiField :name="`skus.${index}.nameZhCn`" :label="t('products.skuName')" required><UiInput v-model="sku.nameZhCn" required /></UiField>
                   <UiField :label="t('products.options')"><UiInput v-model="sku.optionValues['规格']" :placeholder="t('products.optionsPlaceholder')" /></UiField>
                   <UiField :label="t('products.barcode')"><UiInput v-model="sku.barcode" /></UiField>
-                  <UiField :name="`skus.${index}.priceAmount`" :label="t('products.priceCents')" required><UiInput v-model="sku.priceAmount" type="number" min="1" /></UiField>
+                  <UiField :name="`skus.${index}.priceAmount`" :label="t('products.priceCents')" required><UiInput v-model="sku.priceAmount" type="number" min="1" step="0.01" /></UiField>
                   <UiField :label="t('products.initialStock')"><UiInput v-model="sku.initialStock" type="number" min="0" /></UiField>
                   <UiField :label="t('products.weightGrams')"><UiInput v-model="sku.weightGrams" type="number" min="0" /></UiField>
                   <UiField :label="t('products.dimensionsMm')"><div class="dimensions"><UiInput v-model="sku.lengthMm" type="number" min="0" :placeholder="t('products.length')" /><UiInput v-model="sku.widthMm" type="number" min="0" :placeholder="t('products.width')" /><UiInput v-model="sku.heightMm" type="number" min="0" :placeholder="t('products.height')" /></div></UiField>

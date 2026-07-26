@@ -6,8 +6,8 @@ const router = useRouter();
 const { request } = useStorefrontCatalog();
 const form = reactive({
   q: String(route.query.q ?? ""), category: String(route.query.category ?? ""), brand: String(route.query.brand ?? ""), franchise: String(route.query.franchise ?? ""),
-  minPrice: route.query.minPrice ? Number(route.query.minPrice) / 100 : undefined as number | undefined,
-  maxPrice: route.query.maxPrice ? Number(route.query.maxPrice) / 100 : undefined as number | undefined,
+  minPrice: route.query.minPrice ? Number(route.query.minPrice) : undefined as number | undefined,
+  maxPrice: route.query.maxPrice ? Number(route.query.maxPrice) : undefined as number | undefined,
   availability: route.query.inStock === "true" ? "IN_STOCK" : route.query.inStock === "false" ? "OUT" : "ALL",
   saleType: String(route.query.saleType ?? ""), sort: String(route.query.sort ?? (route.query.q ? "RELEVANCE" : "NEWEST")) as CatalogProductSort
 });
@@ -26,8 +26,8 @@ function apply() {
   if (form.category) query.category = form.category;
   if (form.brand) query.brand = form.brand;
   if (form.franchise) query.franchise = form.franchise;
-  if (form.minPrice !== undefined && form.minPrice >= 0) query.minPrice = String(Math.round(form.minPrice * 100));
-  if (form.maxPrice !== undefined && form.maxPrice >= 0) query.maxPrice = String(Math.round(form.maxPrice * 100));
+  if (form.minPrice !== undefined && form.minPrice >= 0) query.minPrice = String(form.minPrice);
+  if (form.maxPrice !== undefined && form.maxPrice >= 0) query.maxPrice = String(form.maxPrice);
   if (form.availability !== "ALL") query.inStock = String(form.availability === "IN_STOCK");
   if (form.saleType) query.saleType = form.saleType;
   query.sort = form.sort;

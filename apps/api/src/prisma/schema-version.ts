@@ -1,1 +1,1 @@
-export const REQUIRED_DATABASE_MIGRATION = "20260725120000_g18_persistent_cart";
+export const REQUIRED_DATABASE_MIGRATION = "20260726090000_price_amount_yuan";

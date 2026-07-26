@@ -10,7 +10,7 @@ export function useStorefrontCatalog() {
     return fileId ? `${apiBase}/files/public/${encodeURIComponent(fileId)}` : "";
   }
   function money(amount: number | null, currency = "CNY") {
-    return amount === null ? "价格待公布" : new Intl.NumberFormat("zh-CN", { style: "currency", currency }).format(amount / 100);
+    return amount === null ? "价格待公布" : new Intl.NumberFormat("zh-CN", { style: "currency", currency }).format(amount);
   }
   return { request, mediaUrl, money };
 }

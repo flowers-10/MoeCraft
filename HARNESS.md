@@ -72,7 +72,7 @@ MoeCraft 的目标不是单店展示站，而是一个允许商家申请入驻�
 - 模块按领域拆分：`auth`、`users`、`merchants`、`catalog`、`products`、`inventory`、`promotions`、`cart`、`checkout`、`orders`、`payments`、`fulfillment`、`after-sales`、`reviews`、`settlements`、`content`、`notifications`、`audit`。
 - 控制器只处理协议与 DTO；业务规则放 service/domain；数据库访问通过 repository 或明确的 Prisma service 边界。
 - 所有外部输入启用 DTO 校验、白名单和转换；错误返回稳定 `code`，文案由客户端本地化。
-- 金额使用最小货币单位整数（如人民币分）并携带 ISO 4217 币种；禁止浮点金额运算。
+- 金额使用 `DECIMAL(10,2)` 以「元」存储（精确、非浮点），携带 ISO 4217 币种；商品价格最低 1.00 元、最多 2 位小数；行小计与合计在边界四舍五入到 2 位，禁止浮点累积运算。
 - 时间数据库统一 UTC，API 使用 ISO 8601，展示端按用户时区格式化。
 - 订单、支付、库存、退款使用事务、唯一约束、幂等键和状态迁移保护。
 - `/health` 保持轻量；另设 readiness 检查数据库/队列，不向匿名用户泄露内部信息。

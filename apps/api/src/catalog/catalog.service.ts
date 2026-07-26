@@ -4,6 +4,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import type { AttributeTemplateDto, BrandDto, CategoryDto, CharacterDto, FranchiseDto, TagDto } from "./catalog.dto";
 import type { CatalogProductQueryDto } from "./catalog.dto";
 import type { PublicProductCard, PublicProductDetail, PublicProductSearchResult } from "@moecraft/shared";
+import { toYuan, toYuanOrNull } from "../money";
 
 const PUBLIC_PRODUCT_INCLUDE = {
   store: true,
@@ -93,7 +94,7 @@ export class CatalogService {
       tags: item.tags.map((tag) => this.catalogReference(tag)!),
       store: { id: item.store.id, name: item.store.name, slug: item.store.slug, logoFileId: item.store.logoFileId, description: item.store.description, customerServiceEmail: item.store.customerServiceEmail, customerServicePhone: item.store.customerServicePhone },
       media: item.media.map((media) => ({ id: media.id, fileId: media.fileId, kind: media.kind as "IMAGE" | "VIDEO", altZhCn: media.altZhCn, altEnUs: media.altEnUs, isCover: media.isCover })),
-      skus: item.skus.map((sku) => { const available = Math.max(0, (sku.inventory?.onHand ?? 0) - (sku.inventory?.reserved ?? 0)); return { id: sku.id, code: sku.code, nameZhCn: sku.nameZhCn, nameEnUs: sku.nameEnUs, optionValues: this.stringRecord(sku.optionValues), priceAmount: sku.priceAmount, currency: sku.currency, available, inStock: available > 0 }; }),
+      skus: item.skus.map((sku) => { const available = Math.max(0, (sku.inventory?.onHand ?? 0) - (sku.inventory?.reserved ?? 0)); return { id: sku.id, code: sku.code, nameZhCn: sku.nameZhCn, nameEnUs: sku.nameEnUs, optionValues: this.stringRecord(sku.optionValues), priceAmount: toYuan(sku.priceAmount), currency: sku.currency, available, inStock: available > 0 }; }),
       salesCount: item.salesCount, createdAt: item.createdAt.toISOString(), updatedAt: item.updatedAt.toISOString()
     };
   }
@@ -121,7 +122,7 @@ export class CatalogService {
     return {
       id: item.id, titleZhCn: item.titleZhCn, titleEnUs: item.titleEnUs, storeName: item.store.name, storeSlug: item.store.slug,
       categoryName: item.category?.nameZhCn ?? null, categorySlug: item.category?.slug ?? null, brandName: item.brand?.nameZhCn ?? null, brandSlug: item.brand?.slug ?? null,
-      franchiseName: item.franchise?.nameZhCn ?? null, franchiseSlug: item.franchise?.slug ?? null, priceAmount: item.skus[0]?.priceAmount ?? null,
+      franchiseName: item.franchise?.nameZhCn ?? null, franchiseSlug: item.franchise?.slug ?? null, priceAmount: toYuanOrNull(item.skus[0]?.priceAmount),
       currency: item.skus[0]?.currency ?? "CNY", available, inStock: available > 0, saleType: item.saleType, coverFileId: cover?.fileId ?? null,
       coverAlt: cover?.altZhCn ?? item.titleZhCn, salesCount: item.salesCount, updatedAt: item.updatedAt.toISOString()
     };

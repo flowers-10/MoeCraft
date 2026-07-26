@@ -434,7 +434,7 @@ model Sku {
   lengthMm    Int?
   widthMm     Int?
   heightMm    Int?
-  priceAmount Int
+  priceAmount Decimal    @db.Decimal(10, 2)
   currency    String     @default("CNY") @db.Char(3)
   purchaseLimit Int?
   isActive    Boolean    @default(true)

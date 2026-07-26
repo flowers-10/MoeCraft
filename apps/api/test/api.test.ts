@@ -441,7 +441,7 @@ function sellable(overrides: Partial<SellableSkuSnapshot> = {}): SellableSkuSnap
     skuNameEnUs: null,
     skuCode: "STD-001",
     coverFileId: null,
-    unitPriceAmount: 12900,
+    unitPriceAmount: 1299,
     currency: "CNY",
     available: 10,
     purchaseLimit: null,

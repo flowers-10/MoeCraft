@@ -23,7 +23,7 @@ const columns = computed<UiTableColumn[]>(() => [
 const canManage = () => props.buttonPermissions.includes("products.manage");
 const canSubmit = () => props.buttonPermissions.includes("products.submit");
 function statusLabel(value: unknown) { const key = productStatusKeys[value as ProductStatus]; return key ? t(key) : String(value); }
-function money(value?: number) { return value === undefined ? "—" : new Intl.NumberFormat(locale.value, { style: "currency", currency: "CNY" }).format(value / 100); }
+function money(value?: number) { return value === undefined ? "—" : new Intl.NumberFormat(locale.value, { style: "currency", currency: "CNY" }).format(value); }
 function formatDate(value: unknown) { return new Intl.DateTimeFormat(locale.value, { dateStyle: "medium", timeStyle: "short" }).format(new Date(String(value))); }
 function productTitle(row: Record<string, unknown>) {
   const zhCn = String(row.titleZhCn ?? "");

@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsDateString, IsIn, IsInt, IsObject, IsOptional, IsString, Length, Max, MaxLength, Min, MinLength, ValidateNested } from "class-validator";
+import { IsArray, IsBoolean, IsDateString, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, Length, Max, MaxLength, Min, MinLength, ValidateNested } from "class-validator";
 import { Type } from "class-transformer";
 
 export class ProductSkuDraftDto {
@@ -12,7 +12,7 @@ export class ProductSkuDraftDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) lengthMm?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) widthMm?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) heightMm?: number;
-  @Type(() => Number) @IsInt() @Min(0) priceAmount!: number;
+  @Type(() => Number) @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) priceAmount!: number;
   @IsOptional() @IsString() @Length(3, 3) currency?: string;
   @Type(() => Number) @IsInt() @Min(0) @Max(1000000) initialStock!: number;
 }
