@@ -460,6 +460,7 @@ model CouponClaim {
   userId    String
   coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Restrict)
   user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  redemption CouponRedemption?
   claimedAt DateTime @default(now())
 
   @@index([couponId, userId])
@@ -468,6 +469,7 @@ model CouponClaim {
 
 model CouponRedemption {
   id             String   @id @default(cuid())
+  claimId        String?  @unique
   couponId       String
   userId         String
   orderId        String   @unique @db.VarChar(191)
@@ -475,6 +477,7 @@ model CouponRedemption {
   discountAmount Decimal  @db.Decimal(10, 2)
   ruleSnapshot   Json
   coupon         Coupon   @relation(fields: [couponId], references: [id], onDelete: Restrict)
+  claim          CouponClaim? @relation(fields: [claimId], references: [id], onDelete: Restrict)
   user           User     @relation(fields: [userId], references: [id], onDelete: Restrict)
   usedAt         DateTime @default(now())
 

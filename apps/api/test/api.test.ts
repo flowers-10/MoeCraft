@@ -4,6 +4,7 @@ import { BadRequestException, ConflictException, ForbiddenException, NotFoundExc
 import type { Reflector } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
+import type { Prisma } from "@prisma/client";
 import { firstValueFrom, of } from "rxjs";
 import { AppService } from "../src/app.service";
 import { AuthService } from "../src/auth/auth.service";
@@ -22,6 +23,8 @@ import { ensureTraceContext } from "../src/observability/trace-context";
 import { canTransitionProduct } from "../src/products/product-workflow";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { REQUIRED_DATABASE_MIGRATION } from "../src/prisma/schema-version";
+import { PromotionService } from "../src/promotions/promotion.service";
+import { calculatePromotionQuote } from "../src/promotions/promotion-domain";
 
 type GuardRequest = { headers: { authorization?: string }; user?: RequestPrincipal };
 type GuardMetadata = Partial<Record<"roles" | "permissions" | "adminRoute" | "adminButton", unknown>>;
@@ -518,5 +521,90 @@ test("cart merge sums overlapping SKUs, clamps by stock and surfaces notices", (
 
   const codes = [...new Set(result.notices.map((notice) => notice.code))].sort();
   assert.deepEqual(codes, ["GUEST_ITEM_ADDED", "QUANTITY_CLAMPED", "QUANTITY_MERGED"]);
+});
+
+test("promotion pricing applies product scope and allocates every discount cent", () => {
+  const quote = calculatePromotionQuote([
+    { skuId: "sku-1", productId: "product-1", storeId: "store-1", quantity: 1, unitPrice: "60.00" },
+    { skuId: "sku-2", productId: "product-2", storeId: "store-1", quantity: 1, unitPrice: "40.00" },
+    { skuId: "sku-3", productId: "product-3", storeId: "store-2", quantity: 1, unitPrice: "30.00" }
+  ], {
+    id: "coupon-1", code: "MOE20", type: "PERCENTAGE", value: "20.00",
+    minimumAmount: "50.00", storeId: "store-1", productIds: ["product-1", "product-2"]
+  });
+
+  assert.equal(quote.originalAmount, "130.00");
+  assert.equal(quote.discountAmount, "20.00");
+  assert.equal(quote.payableAmount, "110.00");
+  assert.deepEqual(quote.allocations.map(({ skuId, discountAmount }) => ({ skuId, discountAmount })), [
+    { skuId: "sku-1", discountAmount: "12.00" },
+    { skuId: "sku-2", discountAmount: "8.00" },
+    { skuId: "sku-3", discountAmount: "0.00" }
+  ]);
+  assert.equal(quote.allocations.reduce((sum, line) => sum + Number(line.discountAmount), 0), Number(quote.discountAmount));
+});
+
+test("promotion quote rejects products or stores that are not sellable", async () => {
+  const prisma = {
+    sku: {
+      findMany: async () => [{
+        id: "sku-1", productId: "product-1", isActive: true, priceAmount: "100.00",
+        product: { id: "product-1", status: "INACTIVE", storeId: "store-1", store: { isOpen: true, merchant: { status: "ACTIVE" } } }
+      }]
+    }
+  } as unknown as PrismaService;
+
+  await assert.rejects(
+    () => new PromotionService(prisma).quote("customer-1", { items: [{ skuId: "sku-1", quantity: 1 }] }),
+    (error: unknown) => error instanceof BadRequestException && error.message === "QUOTE_SKU_NOT_SELLABLE"
+  );
+});
+
+test("promotion redemption persists original price, allocations, and the rule snapshot", async () => {
+  let redemption: Record<string, unknown> | undefined;
+  const coupon = {
+    id: "coupon-1", code: "MOE10", type: "FIXED", value: "10.00", minimumAmount: "50.00",
+    storeId: "store-1", status: "ACTIVE", startsAt: new Date(Date.now() - 60_000),
+    endsAt: new Date(Date.now() + 60_000), products: []
+  };
+  const transaction = {
+    sku: {
+      findMany: async () => [{
+        id: "sku-1", productId: "product-1", isActive: true, priceAmount: "80.00",
+        product: { id: "product-1", status: "ACTIVE", storeId: "store-1", store: { isOpen: true, merchant: { status: "ACTIVE" } } }
+      }]
+    },
+    coupon: { findUnique: async () => coupon },
+    couponClaim: {
+      count: async () => 1,
+      findFirst: async () => ({ id: "claim-1" })
+    },
+    couponRedemption: {
+      count: async () => 0,
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        redemption = data;
+        return { id: "redemption-1", ...data };
+      }
+    }
+  };
+  const service = new PromotionService({} as PrismaService);
+
+  const result = await service.redeemForOrder(
+    transaction as unknown as Prisma.TransactionClient,
+    "customer-1",
+    "order-1",
+    { items: [{ skuId: "sku-1", quantity: 1 }], couponCode: "MOE10" }
+  );
+
+  assert.equal(result.id, "redemption-1");
+  assert.equal(redemption?.orderId, "order-1");
+  assert.equal(redemption?.claimId, "claim-1");
+  assert.equal(String(redemption?.originalAmount), "80");
+  assert.equal(String(redemption?.discountAmount), "10");
+  assert.deepEqual(redemption?.ruleSnapshot, {
+    couponCode: "MOE10",
+    rule: { type: "FIXED", value: "10.00", minimumAmount: "50.00", storeId: "store-1", productIds: [] },
+    allocations: [{ skuId: "sku-1", originalAmount: "80.00", discountAmount: "10.00", payableAmount: "70.00" }]
+  });
 });
 

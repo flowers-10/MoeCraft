@@ -15,6 +15,10 @@ const columns: UiTableColumn[] = [
 ];
 const rows = computed(() => state.coupons.value.map((coupon) => ({ ...coupon, campaign: coupon.id, rule: coupon.id, period: coupon.id, statistics: coupon.id, actions: coupon.id })));
 const date = (value: string) => new Intl.DateTimeFormat("zh-CN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+const productScope = (row: Record<string, unknown>) => {
+  const ids = Array.isArray(row.productIds) ? row.productIds : [];
+  return ids.length ? `限定 ${ids.length} 件商品` : "全店适用";
+};
 onMounted(state.load);
 </script>
 
@@ -28,9 +32,9 @@ onMounted(state.load);
     <section class="panel">
       <div v-if="state.loading.value" class="loading">正在加载优惠活动…</div>
       <UiTable v-else :columns="columns" :rows="rows" empty-text="尚未创建优惠券">
-        <template #cell-campaign="{ row }"><div class="campaign"><b>{{ row.name }}</b><code>{{ row.code }}</code><small>{{ row.productIds.length ? `限定 ${row.productIds.length} 件商品` : "全店适用" }}</small></div></template>
+        <template #cell-campaign="{ row }"><div class="campaign"><b>{{ row.name }}</b><code>{{ row.code }}</code><small>{{ productScope(row) }}</small></div></template>
         <template #cell-rule="{ row }"><b>{{ row.type === "FIXED" ? `减 ¥${row.value}` : `${row.value}% OFF` }}</b><small>满 ¥{{ row.minimumAmount }} 可用 · 每人 {{ row.perUserLimit }} 张</small></template>
-        <template #cell-period="{ row }"><small>{{ date(row.startsAt) }}<br>至 {{ date(row.endsAt) }}</small></template>
+        <template #cell-period="{ row }"><small>{{ date(String(row.startsAt)) }}<br>至 {{ date(String(row.endsAt)) }}</small></template>
         <template #cell-statistics="{ row }"><b>{{ row.claimedCount }} / {{ row.usedCount }}</b><small>已优惠 ¥{{ row.discountTotal }}</small></template>
         <template #cell-status="{ row }"><UiBadge :tone="row.status === 'ACTIVE' ? 'success' : 'warning'">{{ row.status === "ACTIVE" ? "启用" : "暂停" }}</UiBadge></template>
         <template #cell-actions="{ row }"><UiButton v-if="canManage" size="sm" variant="ghost" :disabled="state.busy.value" @click="state.toggle(row as unknown as CouponView)">{{ row.status === "ACTIVE" ? "暂停" : "启用" }}</UiButton></template>
