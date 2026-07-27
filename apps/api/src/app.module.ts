@@ -20,6 +20,7 @@ import { ObservabilityModule } from "./observability/observability.module";
 import { RequestLoggingInterceptor } from "./observability/request-logging.interceptor";
 import { InventoryModule } from "./inventory/inventory.module";
 import { CartModule } from "./cart/cart.module";
+import { PromotionModule } from "./promotions/promotion.module";
 
 @Module({
   imports: [
@@ -38,7 +39,8 @@ import { CartModule } from "./cart/cart.module";
     CatalogModule,
     ProductModule,
     InventoryModule,
-    CartModule
+    CartModule,
+    PromotionModule
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }, { provide: APP_GUARD, useClass: AuthorizationGuard }, { provide: APP_INTERCEPTOR, useClass: RequestLoggingInterceptor }, { provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor }, { provide: APP_FILTER, useClass: ApiExceptionFilter }]

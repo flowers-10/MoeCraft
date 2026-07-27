@@ -30,7 +30,7 @@ export const zhCN = {
   "team.cancel":"取消","team.creating":"正在创建…","team.close":"关闭","team.saving":"正在保存…",
   "team.confirmEnable":"确认启用员工“{name}”吗？","team.confirmDisable":"确认停用员工“{name}”吗？该账号将立即退出登录。","team.confirmDelete":"确认永久删除员工“{name}”吗？该员工将从店铺成员中移除，此操作不可撤销。",
   "team.enabled":"员工账号已启用。","team.disabled":"员工账号已停用。","team.deleted":"员工账号已删除。",
-  "permission.button.storeProfileEdit":"编辑店铺资料","permission.button.staffCreate":"创建员工账号","permission.button.staffPermissions":"编辑员工权限","permission.button.staffRemove":"停用员工账号","permission.button.productsManage":"管理商品","permission.button.productsSubmit":"提交商品审核","permission.button.productsReview":"审核商品","permission.button.inventoryAdjust":"调整库存","permission.button.ordersManage":"处理订单","permission.button.afterSalesManage":"处理售后","permission.button.reportsView":"查看报表",
+  "permission.button.storeProfileEdit":"编辑店铺资料","permission.button.staffCreate":"创建员工账号","permission.button.staffPermissions":"编辑员工权限","permission.button.staffRemove":"停用员工账号","permission.button.productsManage":"管理商品","permission.button.productsSubmit":"提交商品审核","permission.button.productsReview":"审核商品","permission.button.inventoryAdjust":"调整库存","permission.button.promotionsManage":"管理优惠券","permission.button.ordersManage":"处理订单","permission.button.afterSalesManage":"处理售后","permission.button.reportsView":"查看报表",
   "products.title":"商品管理","products.subtitle":"维护商品草稿、审核状态、SKU 与上架生命周期。","products.newDraft":"新建商品草稿","products.searchPlaceholder":"搜索商品名称","products.allStatuses":"全部状态",
   "products.status.DRAFT":"草稿","products.status.PENDING_REVIEW":"待审核","products.status.APPROVED":"已通过","products.status.REJECTED":"已驳回","products.status.ACTIVE":"在售","products.status.INACTIVE":"已下架","products.status.ARCHIVED":"已归档",
   "products.columnProduct":"商品","products.columnStatus":"状态","products.columnSkuStock":"SKU / 库存","products.columnPrice":"价格区间","products.columnUpdated":"更新时间","products.columnActions":"操作",
@@ -50,7 +50,7 @@ export const zhCN = {
   "inventory.search":"搜索商品、规格或 SKU 编码","inventory.filterAll":"全部库存","inventory.filterLow":"仅低库存","inventory.filterAvailable":"有可售库存","inventory.filterOut":"无可售库存","inventory.loading":"正在同步库存…","inventory.empty":"没有符合条件的 SKU","inventory.low":"库存偏低","inventory.healthy":"库存正常","inventory.manage":"管理","inventory.view":"查看",
   "inventory.drawerTitle":"库存详情","inventory.close":"关闭库存详情","inventory.adjustTitle":"调整库存与预警","inventory.delta":"库存增减","inventory.reason":"调整原因","inventory.reasonPlaceholder":"必填，例如：盘点差异、入库补货","inventory.reasonRequired":"调整库存时必须填写至少 2 个字的原因。","inventory.save":"保存调整","inventory.ledger":"库存流水","inventory.ledgerEmpty":"暂无库存流水",
   "inventory.type.INITIAL_STOCK":"初始库存","inventory.type.ADJUSTMENT":"人工调整","inventory.type.RESERVATION_CREATED":"订单锁定","inventory.type.RESERVATION_COMMITTED":"支付扣减","inventory.type.RESERVATION_RELEASED":"释放锁定",
-  "nav.catalog":"目录资料",
+  "nav.catalog":"目录资料","nav.promotions":"优惠券",
 } as const;
 
 export type MessageKey = keyof typeof zhCN;

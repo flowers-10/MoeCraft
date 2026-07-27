@@ -19,6 +19,7 @@ export const navigationTree:NavigationNode[]=[
   {id:"commerce",label:"nav.commerce",icon:"▦",children:[
     {id:"products",label:"nav.products",icon:"·",routeName:"products",accessKey:"commerce.products"},
     {id:"inventory",label:"nav.inventory",icon:"·",routeName:"inventory",accessKey:"commerce.inventory"},
+    {id:"promotions",label:"nav.promotions",icon:"·",routeName:"promotions",accessKey:"commerce.promotions"},
     {id:"orders",label:"nav.orders",icon:"·",routeName:"orders",accessKey:"commerce.orders"},
     {id:"afterSales",label:"nav.afterSales",icon:"·",routeName:"afterSales",accessKey:"commerce.afterSales"},
     {id:"reports",label:"nav.reports",icon:"·",routeName:"reports",accessKey:"commerce.reports"}

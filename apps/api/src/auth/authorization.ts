@@ -5,13 +5,13 @@ import type { AdminButtonPermission, AdminRoutePermission, Permission, UserRole 
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 
-const P = { catalogRead:"catalog:read",productRead:"product:read",productManage:"product:manage",inventoryRead:"inventory:read",orderRead:"order:read",merchantRead:"merchant:read",merchantReview:"merchant:review",catalogManage:"catalog:manage",productReview:"product:review",auditRead:"audit:read" } as const satisfies Record<string, Permission>;
+const P = { catalogRead:"catalog:read",productRead:"product:read",productManage:"product:manage",inventoryRead:"inventory:read",promotionRead:"promotion:read",promotionManage:"promotion:manage",orderRead:"order:read",merchantRead:"merchant:read",merchantReview:"merchant:review",catalogManage:"catalog:manage",productReview:"product:review",auditRead:"audit:read" } as const satisfies Record<string, Permission>;
 
 const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
-  CUSTOMER: [], MERCHANT_OWNER: [P.catalogRead,P.productRead,P.productManage,P.inventoryRead,P.orderRead],
-  MERCHANT_STAFF: [P.catalogRead,P.productRead,P.productManage,P.inventoryRead,P.orderRead],
+  CUSTOMER: [], MERCHANT_OWNER: [P.catalogRead,P.productRead,P.productManage,P.inventoryRead,P.promotionRead,P.promotionManage,P.orderRead],
+  MERCHANT_STAFF: [P.catalogRead,P.productRead,P.productManage,P.inventoryRead,P.promotionRead,P.promotionManage,P.orderRead],
   PLATFORM_OPERATOR: [P.merchantRead,P.merchantReview,P.catalogRead,P.catalogManage,P.productRead,P.productReview,P.orderRead,P.auditRead],
-  PLATFORM_ADMIN: ["merchant:read","merchant:manage","merchant:review","staff:manage","catalog:read","catalog:manage","product:read","product:manage","product:review","inventory:read","inventory:adjust","order:read","order:manage","payment:read","refund:manage","settlement:read","settlement:manage","content:manage","audit:read","system:manage"]
+  PLATFORM_ADMIN: ["merchant:read","merchant:manage","merchant:review","staff:manage","catalog:read","catalog:manage","product:read","product:manage","product:review","inventory:read","inventory:adjust","promotion:read","promotion:manage","order:read","order:manage","payment:read","refund:manage","settlement:read","settlement:manage","content:manage","audit:read","system:manage"]
 };
 
 export const RequirePermissions = (...permissions: Permission[]) => SetMetadata("permissions", permissions);

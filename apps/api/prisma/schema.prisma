@@ -70,6 +70,16 @@ enum InventoryReservationStatus {
   EXPIRED
 }
 
+enum CouponType {
+  FIXED
+  PERCENTAGE
+}
+
+enum CouponStatus {
+  ACTIVE
+  PAUSED
+}
+
 model FileAsset {
   id          String     @id @default(cuid())
   ownerId     String
@@ -95,6 +105,8 @@ model User {
   sessions     Session[]
   resetTokens  PasswordResetToken[]
   cart         Cart?
+  couponClaims CouponClaim[]
+  couponRedemptions CouponRedemption[]
   merchantApplications MerchantApplication[] @relation("MerchantApplicant")
   reviewedMerchantApplications MerchantApplication[] @relation("MerchantReviewer")
   applicationTimeline MerchantApplicationTimeline[]
@@ -259,6 +271,7 @@ model Store {
   returnAddress Json?
   merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Restrict)
   products   Product[]
+  coupons    Coupon[]
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 }
@@ -396,6 +409,7 @@ model Product {
   skus       Sku[]
   media      ProductMedia[]
   reviewEvents ProductReviewEvent[]
+  couponScopes CouponProduct[]
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
 
@@ -405,6 +419,67 @@ model Product {
   @@index([franchiseId, status])
   @@index([characterId, status])
   @@index([status, saleType, updatedAt])
+}
+
+model Coupon {
+  id             String       @id @default(cuid())
+  storeId        String
+  code           String       @unique @db.VarChar(40)
+  name           String       @db.VarChar(160)
+  type           CouponType
+  value          Decimal      @db.Decimal(10, 2)
+  minimumAmount  Decimal      @default(0) @db.Decimal(10, 2)
+  startsAt       DateTime
+  endsAt         DateTime
+  status         CouponStatus @default(ACTIVE)
+  totalLimit     Int
+  perUserLimit   Int
+  store          Store        @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  products       CouponProduct[]
+  claims         CouponClaim[]
+  redemptions    CouponRedemption[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([storeId, status, endsAt])
+}
+
+model CouponProduct {
+  couponId String
+  productId String
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@id([couponId, productId])
+  @@index([productId])
+}
+
+model CouponClaim {
+  id        String   @id @default(cuid())
+  couponId  String
+  userId    String
+  coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Restrict)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  claimedAt DateTime @default(now())
+
+  @@index([couponId, userId])
+  @@index([userId, claimedAt])
+}
+
+model CouponRedemption {
+  id             String   @id @default(cuid())
+  couponId       String
+  userId         String
+  orderId        String   @unique @db.VarChar(191)
+  originalAmount Decimal  @db.Decimal(10, 2)
+  discountAmount Decimal  @db.Decimal(10, 2)
+  ruleSnapshot   Json
+  coupon         Coupon   @relation(fields: [couponId], references: [id], onDelete: Restrict)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  usedAt         DateTime @default(now())
+
+  @@index([couponId, usedAt])
+  @@index([userId, usedAt])
 }
 
 model ProductReviewEvent {

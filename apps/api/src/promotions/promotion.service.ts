@@ -1,0 +1,112 @@
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { calculatePromotionQuote, type CouponView, type PromotionQuoteLine } from "@moecraft/shared";
+import { Prisma } from "@prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
+import type { CreateCouponDto, PromotionQuoteDto } from "./promotion.dto";
+
+const money = (value: Prisma.Decimal | string | number) => new Prisma.Decimal(value).toFixed(2);
+
+@Injectable()
+export class PromotionService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async list(userId: string): Promise<CouponView[]> {
+    const storeId = await this.storeId(userId);
+    const rows = await this.prisma.coupon.findMany({
+      where: { storeId },
+      include: { products: true, _count: { select: { claims: true, redemptions: true } }, redemptions: { select: { discountAmount: true } } },
+      orderBy: { createdAt: "desc" }
+    });
+    return rows.map((row) => this.view(row));
+  }
+
+  async create(userId: string, dto: CreateCouponDto): Promise<CouponView> {
+    const storeId = await this.storeId(userId);
+    const code = dto.code.trim().toUpperCase();
+    const value = new Prisma.Decimal(dto.value);
+    const minimumAmount = new Prisma.Decimal(dto.minimumAmount);
+    const startsAt = new Date(dto.startsAt);
+    const endsAt = new Date(dto.endsAt);
+    if (!value.isPositive() || minimumAmount.isNegative()) throw new BadRequestException("COUPON_AMOUNT_INVALID");
+    if (dto.type === "PERCENTAGE" && value.greaterThan(100)) throw new BadRequestException("COUPON_PERCENTAGE_INVALID");
+    if (endsAt <= startsAt) throw new BadRequestException("COUPON_PERIOD_INVALID");
+    if (dto.perUserLimit > dto.totalLimit) throw new BadRequestException("COUPON_LIMIT_INVALID");
+    const productIds = [...new Set(dto.productIds)];
+    if (productIds.length) {
+      const count = await this.prisma.product.count({ where: { id: { in: productIds }, storeId } });
+      if (count !== productIds.length) throw new BadRequestException("COUPON_PRODUCT_SCOPE_INVALID");
+    }
+    try {
+      const row = await this.prisma.coupon.create({
+        data: { storeId, code, name: dto.name.trim(), type: dto.type, value, minimumAmount, startsAt, endsAt, totalLimit: dto.totalLimit, perUserLimit: dto.perUserLimit, products: { create: productIds.map((productId) => ({ productId })) } },
+        include: { products: true, _count: { select: { claims: true, redemptions: true } }, redemptions: { select: { discountAmount: true } } }
+      });
+      await this.prisma.auditLog.create({ data: { actorId: userId, action: "coupon.created", targetType: "Coupon", targetId: row.id, metadata: { code, storeId } } });
+      return this.view(row);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") throw new ConflictException("COUPON_CODE_EXISTS");
+      throw error;
+    }
+  }
+
+  async setStatus(userId: string, id: string, status: "ACTIVE" | "PAUSED"): Promise<CouponView> {
+    const storeId = await this.storeId(userId);
+    const existing = await this.prisma.coupon.findFirst({ where: { id, storeId } });
+    if (!existing) throw new NotFoundException("COUPON_NOT_FOUND");
+    const row = await this.prisma.coupon.update({
+      where: { id },
+      data: { status },
+      include: { products: true, _count: { select: { claims: true, redemptions: true } }, redemptions: { select: { discountAmount: true } } }
+    });
+    await this.prisma.auditLog.create({ data: { actorId: userId, action: "coupon.status.updated", targetType: "Coupon", targetId: id, metadata: { status } } });
+    return this.view(row);
+  }
+
+  async claim(userId: string, rawCode: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const coupon = await tx.coupon.findUnique({ where: { code: rawCode.trim().toUpperCase() }, include: { _count: { select: { claims: true } } } });
+      this.assertAvailable(coupon);
+      const userClaims = await tx.couponClaim.count({ where: { couponId: coupon.id, userId } });
+      if (coupon._count.claims >= coupon.totalLimit) throw new ConflictException("COUPON_CLAIM_LIMIT_REACHED");
+      if (userClaims >= coupon.perUserLimit) throw new ConflictException("COUPON_USER_LIMIT_REACHED");
+      return tx.couponClaim.create({ data: { couponId: coupon.id, userId }, select: { id: true, couponId: true, claimedAt: true } });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  }
+
+  async quote(userId: string, dto: PromotionQuoteDto) {
+    const quantities = new Map<string, number>();
+    for (const item of dto.items) quantities.set(item.skuId, (quantities.get(item.skuId) ?? 0) + item.quantity);
+    const skus = await this.prisma.sku.findMany({ where: { id: { in: [...quantities.keys()] }, isActive: true }, include: { product: { include: { store: true } } } });
+    if (skus.length !== quantities.size) throw new BadRequestException("QUOTE_SKU_INVALID");
+    const lines: PromotionQuoteLine[] = skus.map((sku) => ({ skuId: sku.id, productId: sku.productId, storeId: sku.product.storeId, quantity: quantities.get(sku.id)!, unitPrice: money(sku.priceAmount) }));
+    if (!dto.couponCode) return calculatePromotionQuote(lines);
+    const coupon = await this.prisma.coupon.findUnique({ where: { code: dto.couponCode.trim().toUpperCase() }, include: { products: true } });
+    this.assertAvailable(coupon);
+    const claims = await this.prisma.couponClaim.count({ where: { couponId: coupon.id, userId } });
+    const uses = await this.prisma.couponRedemption.count({ where: { couponId: coupon.id, userId } });
+    if (claims <= uses) throw new ForbiddenException("COUPON_NOT_CLAIMED");
+    return calculatePromotionQuote(lines, { id: coupon.id, code: coupon.code, type: coupon.type, value: money(coupon.value), minimumAmount: money(coupon.minimumAmount), storeId: coupon.storeId, productIds: coupon.products.map((scope) => scope.productId) });
+  }
+
+  private assertAvailable<T extends { status: string; startsAt: Date; endsAt: Date } | null>(coupon: T): asserts coupon is NonNullable<T> {
+    if (!coupon) throw new NotFoundException("COUPON_NOT_FOUND");
+    const now = new Date();
+    if (coupon.status !== "ACTIVE") throw new ConflictException("COUPON_PAUSED");
+    if (coupon.startsAt > now || coupon.endsAt <= now) throw new ConflictException("COUPON_NOT_ACTIVE");
+  }
+
+  private async storeId(userId: string) {
+    const membership = await this.prisma.merchantMember.findFirst({ where: { userId }, include: { merchant: { include: { store: true } } } });
+    if (!membership?.merchant.store || membership.merchant.status !== "ACTIVE") throw new ForbiddenException("ACTIVE_MERCHANT_STORE_REQUIRED");
+    return membership.merchant.store.id;
+  }
+
+  private view(row: {
+    id: string; code: string; name: string; type: "FIXED" | "PERCENTAGE"; value: Prisma.Decimal; minimumAmount: Prisma.Decimal;
+    startsAt: Date; endsAt: Date; status: "ACTIVE" | "PAUSED"; totalLimit: number; perUserLimit: number; storeId: string; createdAt: Date;
+    products: { productId: string }[]; _count: { claims: number; redemptions: number }; redemptions: { discountAmount: Prisma.Decimal }[];
+  }): CouponView {
+    const discount = row.redemptions.reduce((sum, redemption) => sum.plus(redemption.discountAmount), new Prisma.Decimal(0));
+    return { id: row.id, code: row.code, name: row.name, type: row.type, value: money(row.value), minimumAmount: money(row.minimumAmount), startsAt: row.startsAt.toISOString(), endsAt: row.endsAt.toISOString(), status: row.status, totalLimit: row.totalLimit, perUserLimit: row.perUserLimit, storeId: row.storeId, productIds: row.products.map((scope) => scope.productId), claimedCount: row._count.claims, usedCount: row._count.redemptions, discountTotal: money(discount), createdAt: row.createdAt.toISOString() };
+  }
+}

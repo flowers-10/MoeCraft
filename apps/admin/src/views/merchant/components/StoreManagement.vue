@@ -34,6 +34,7 @@ const routeLabelKeys: Record<AdminRoutePermission, MessageKey> = {
   "merchant.team": "nav.members",
   "commerce.products": "nav.products",
   "commerce.inventory": "nav.inventory",
+  "commerce.promotions": "nav.promotions",
   "commerce.orders": "nav.orders",
   "commerce.afterSales": "nav.afterSales",
   "commerce.reports": "nav.reports"
@@ -47,6 +48,7 @@ const buttonLabelKeys: Record<AdminButtonPermission, MessageKey> = {
   "products.submit": "permission.button.productsSubmit",
   "products.review": "permission.button.productsReview",
   "inventory.adjust": "permission.button.inventoryAdjust",
+  "promotions.manage": "permission.button.promotionsManage",
   "orders.manage": "permission.button.ordersManage",
   "afterSales.manage": "permission.button.afterSalesManage",
   "reports.view": "permission.button.reportsView"
