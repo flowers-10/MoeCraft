@@ -23,6 +23,7 @@ import { CartModule } from "./cart/cart.module";
 import { PromotionModule } from "./promotions/promotion.module";
 import { CheckoutModule } from "./checkout/checkout.module";
 import { OrderModule } from "./orders/order.module";
+import { PaymentModule } from "./payments/payment.module";
 
 @Module({
   imports: [
@@ -44,7 +45,8 @@ import { OrderModule } from "./orders/order.module";
     CartModule,
     PromotionModule,
     CheckoutModule,
-    OrderModule
+    OrderModule,
+    PaymentModule
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }, { provide: APP_GUARD, useClass: AuthorizationGuard }, { provide: APP_INTERCEPTOR, useClass: RequestLoggingInterceptor }, { provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor }, { provide: APP_FILTER, useClass: ApiExceptionFilter }]

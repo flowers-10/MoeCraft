@@ -295,9 +295,9 @@ MoeCraft 的目标不是单店展示站，而是一个允许商家申请入驻�
 
 #### G23 `feat(payment): add provider abstraction and sandbox payment`
 
-- [ ] 定义 create/query/close/refund/verifyWebhook 接口，先实现可控沙箱适配器。
-- [ ] 回调验签、原始事件留档、金额/币种核对、重复回调幂等、乱序处理，并覆盖集成测试。
-- [ ] 前台提供支付中、成功、失败、取消和轮询恢复；刷新页面不重复支付。
+- [x] 定义 create/query/close/refund/verifyWebhook 接口，先实现可控沙箱适配器。
+- [x] 回调验签、原始事件留档、金额/币种核对、重复回调幂等、乱序处理，并覆盖集成测试。
+- [x] 前台提供支付中、成功、失败、取消和轮询恢复；刷新页面不重复支付。
 
 #### G24 `feat(order-ui): deliver buyer and merchant order workflows`
 

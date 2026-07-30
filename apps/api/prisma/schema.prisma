@@ -578,10 +578,30 @@ model PaymentIntent {
   paidAt             DateTime?
   closedAt           DateTime?
   order              Order         @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  events             PaymentEvent[]
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
   @@index([status, expiresAt])
+}
+
+model PaymentEvent {
+  id                 String         @id @default(cuid())
+  paymentIntentId    String?
+  provider           String         @db.VarChar(40)
+  providerEventId    String         @unique @db.VarChar(120)
+  eventType          String         @db.VarChar(60)
+  rawBody            String         @db.LongText
+  eventData          Json
+  signatureValid     Boolean        @default(false)
+  ignored            Boolean        @default(false)
+  errorCode          String?        @db.VarChar(80)
+  processedAt        DateTime?
+  paymentIntent      PaymentIntent? @relation(fields: [paymentIntentId], references: [id], onDelete: Restrict)
+  createdAt          DateTime       @default(now())
+
+  @@index([paymentIntentId, createdAt])
+  @@index([processedAt, createdAt])
 }
 
 model Coupon {

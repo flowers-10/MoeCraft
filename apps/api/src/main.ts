@@ -8,7 +8,7 @@ import { StructuredLogger } from "./observability/structured-logger";
 import { setupOpenApi } from "./openapi/openapi";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   const config = app.get(ConfigService<AppEnvironment, true>);
   const logger = app.get(StructuredLogger);
   const port = config.get("PORT", { infer: true });
