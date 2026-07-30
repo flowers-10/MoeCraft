@@ -111,7 +111,8 @@ async function changeQty(itemId: string, current: number, delta: number) {
             <dt>商品合计</dt><dd class="total">{{ money(selectedAmount, cart.currency) }}</dd>
           </dl>
           <p class="disclaimer">{{ cart.priceDisclaimer }}</p>
-          <button type="button" class="checkout" disabled title="结算台将在后续版本开放">去结算</button>
+          <NuxtLink v-if="cart.validSelectedCount > 0" class="checkout" to="/checkout">去结算</NuxtLink>
+          <button v-else type="button" class="checkout" disabled>请选择可购买商品</button>
           <NuxtLink class="keep" to="/catalog">继续购物</NuxtLink>
         </aside>
       </section>

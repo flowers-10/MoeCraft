@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import type { CheckoutQuote, OrderListItem, OrderStatus, OrderView } from "@moecraft/shared";
+import type { CheckoutQuote, OrderExportTaskView, OrderListItem, OrderStatus, OrderView } from "@moecraft/shared";
 import { Prisma } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 import type { RequestPrincipal } from "../auth/authorization";
@@ -153,7 +153,38 @@ export class OrderService {
   async get(principal:RequestPrincipal,id:string):Promise<OrderView>{
     const row=await this.prisma.order.findUnique({where:{id},include:orderInclude});
     if(!row||!this.canRead(principal,row))throw new NotFoundException("ORDER_NOT_FOUND");
-    return this.view(row);
+    const value=this.view(row);
+    if(!principal.roles.includes("CUSTOMER"))value.address={...value.address,phone:maskPhone(value.address.phone)};
+    return value;
+  }
+
+  async addMerchantNote(principal:RequestPrincipal,orderId:string,merchantOrderId:string,note:string):Promise<OrderView>{
+    if(!principal.merchantId)throw new ForbiddenException("MERCHANT_SCOPE_REQUIRED");
+    const child=await this.prisma.merchantOrder.findFirst({where:{id:merchantOrderId,orderId,merchantId:principal.merchantId}});
+    if(!child)throw new NotFoundException("MERCHANT_ORDER_NOT_FOUND");
+    await this.prisma.merchantOrder.update({where:{id:merchantOrderId},data:{merchantNote:note.trim()}});
+    await this.prisma.auditLog.create({data:{actorId:principal.sub,action:"order.merchant_note.updated",targetType:"MerchantOrder",targetId:merchantOrderId}});
+    return this.get(principal,orderId);
+  }
+
+  async createExport(principal:RequestPrincipal,query:OrderListQueryDto):Promise<OrderExportTaskView>{
+    const merchantId=principal.roles.some((role)=>role==="MERCHANT_OWNER"||role==="MERCHANT_STAFF")?principal.merchantId:null;
+    if(!merchantId&&!principal.roles.some((role)=>role==="PLATFORM_ADMIN"||role==="PLATFORM_OPERATOR"))throw new ForbiddenException("PERMISSION_DENIED");
+    const task=await this.prisma.orderExportTask.create({data:{requesterId:principal.sub,merchantId,filters:{status:query.status??null,search:query.search??null}}});
+    setImmediate(()=>{void this.runExport(task.id,principal,query);});
+    return{id:task.id,status:"PENDING",downloadName:null,createdAt:task.createdAt.toISOString(),completedAt:null,error:null};
+  }
+
+  private async runExport(id:string,principal:RequestPrincipal,query:OrderListQueryDto){
+    try{
+      await this.prisma.orderExportTask.update({where:{id},data:{status:"PROCESSING"}});
+      const rows=await this.list(principal,query);
+      const escape=(value:string)=>`"${value.replaceAll('"','""')}"`;
+      const csv=["orderNumber,status,stores,itemCount,amount,currency,createdAt",...rows.map((row)=>[row.orderNumber,row.status,row.storeNames.join(" / "),String(row.itemCount),row.payableAmount,row.currency,row.createdAt].map(escape).join(","))].join("\r\n");
+      await this.prisma.orderExportTask.update({where:{id},data:{status:"COMPLETED",downloadName:`orders-${id}.csv`,resultCsv:csv,completedAt:new Date()}});
+    }catch(error){
+      await this.prisma.orderExportTask.update({where:{id},data:{status:"FAILED",errorMessage:error instanceof Error?error.message:"EXPORT_FAILED",completedAt:new Date()}});
+    }
   }
 
   async cancel(userId:string,id:string):Promise<OrderView>{
@@ -208,7 +239,7 @@ export class OrderService {
       status:order.status as OrderStatus,currency:order.currency,originalAmount:money(order.originalAmount),shippingAmount:money(order.shippingAmount),
       discountAmount:money(order.discountAmount),payableAmount:money(order.payableAmount),address,
       merchantOrders:order.merchantOrders.map((child)=>({id:child.id,merchantId:child.merchantId,storeId:child.storeId,storeName:child.store.name,status:child.status as OrderStatus,
-        originalAmount:money(child.originalAmount),shippingAmount:money(child.shippingAmount),discountAmount:money(child.discountAmount),payableAmount:money(child.payableAmount),
+        originalAmount:money(child.originalAmount),shippingAmount:money(child.shippingAmount),discountAmount:money(child.discountAmount),payableAmount:money(child.payableAmount),merchantNote:child.merchantNote,
         items:child.items.map((item)=>({id:item.id,merchantOrderId:item.merchantOrderId,storeId:item.storeId,skuId:item.skuId,productId:item.productId,productTitle:item.productTitle,
           skuName:item.skuName,coverFileId:item.coverFileId,quantity:item.quantity,currency:item.currency,unitPrice:money(item.unitPrice),originalAmount:money(item.originalAmount),
           discountAmount:money(item.discountAmount),payableAmount:money(item.payableAmount)}))})),

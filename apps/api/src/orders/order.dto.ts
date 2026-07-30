@@ -9,3 +9,4 @@ export class OrderListQueryDto {
   @IsOptional() @IsIn(orderStatuses) status?: OrderStatus;
   @IsOptional() @IsString() @MaxLength(80) search?: string;
 }
+export class MerchantOrderNoteDto{@IsString()@MinLength(1)@MaxLength(1000)note!:string;}

@@ -301,9 +301,9 @@ MoeCraft 的目标不是单店展示站，而是一个允许商家申请入驻�
 
 #### G24 `feat(order-ui): deliver buyer and merchant order workflows`
 
-- [ ] storefront：订单列表/详情、继续支付、取消、确认收货、售后入口。
-- [ ] admin 商家：订单筛选、详情、买家隐私最小展示、备注、导出异步任务。
-- [ ] admin 平台：跨店监察、异常筛选；普通运营无权修改支付事实。
+- [x] storefront：订单列表/详情、继续支付、取消、确认收货、售后入口。
+- [x] admin 商家：订单筛选、详情、买家隐私最小展示、备注、导出异步任务。
+- [x] admin 平台：跨店监察、异常筛选；普通运营无权修改支付事实。
 
 #### G25 `feat(jobs): automate payment timeout and inventory release`
 

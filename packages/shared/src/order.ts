@@ -8,7 +8,7 @@ export type OrderItemView = {
 };
 export type MerchantOrderView = {
   id: string; merchantId: string; storeId: string; storeName: string; status: OrderStatus;
-  originalAmount: string; shippingAmount: string; discountAmount: string; payableAmount: string; items: OrderItemView[];
+  originalAmount: string; shippingAmount: string; discountAmount: string; payableAmount: string; merchantNote: string | null; items: OrderItemView[];
 };
 export type OrderPaymentSummary = {
   id: string; status: PaymentStatus; provider: string; amount: string; currency: string; expiresAt: string;
@@ -21,4 +21,8 @@ export type OrderView = {
 };
 export type OrderListItem = Omit<OrderView, "address" | "merchantOrders"> & {
   storeNames: string[]; itemCount: number;
+};
+export type OrderExportTaskView = {
+  id: string; status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
+  downloadName: string | null; createdAt: string; completedAt: string | null; error: string | null;
 };

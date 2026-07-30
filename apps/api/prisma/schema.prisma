@@ -604,6 +604,23 @@ model PaymentEvent {
   @@index([processedAt, createdAt])
 }
 
+model OrderExportTask {
+  id            String   @id @default(cuid())
+  requesterId   String
+  merchantId    String?
+  status        String   @default("PENDING") @db.VarChar(20)
+  filters       Json
+  downloadName  String?  @db.VarChar(255)
+  resultCsv     String?  @db.LongText
+  errorMessage  String?  @db.VarChar(1000)
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([requesterId, createdAt])
+  @@index([merchantId, status])
+}
+
 model Coupon {
   id             String       @id @default(cuid())
   storeId        String

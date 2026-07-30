@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Headers, Param, Patch, Post, Query, Req } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
-import { RequireAdminRoute, RequireRoles, type RequestPrincipal } from "../auth/authorization";
-import { OrderListQueryDto, SubmitOrderDto } from "./order.dto";
+import { RequireAdminButton, RequireAdminRoute, RequireRoles, type RequestPrincipal } from "../auth/authorization";
+import { MerchantOrderNoteDto, OrderListQueryDto, SubmitOrderDto } from "./order.dto";
 import { OrderService } from "./order.service";
 
 @Controller("orders")
@@ -23,4 +23,7 @@ export class AdminOrderController {
   constructor(private readonly orders:OrderService){}
   @Get() list(@Req() req:{user:RequestPrincipal},@Query() query:OrderListQueryDto){return this.orders.list(req.user,query);}
   @Get(":id") get(@Req() req:{user:RequestPrincipal},@Param("id") id:string){return this.orders.get(req.user,id);}
+  @Patch(":id/merchant-orders/:merchantOrderId/note")@RequireAdminButton("orders.manage")
+  note(@Req()req:{user:RequestPrincipal},@Param("id")id:string,@Param("merchantOrderId")merchantOrderId:string,@Body()dto:MerchantOrderNoteDto){return this.orders.addMerchantNote(req.user,id,merchantOrderId,dto.note);}
+  @Post("exports")export(@Req()req:{user:RequestPrincipal},@Body()query:OrderListQueryDto){return this.orders.createExport(req.user,query);}
 }
