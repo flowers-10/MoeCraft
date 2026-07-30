@@ -22,6 +22,7 @@ import { InventoryModule } from "./inventory/inventory.module";
 import { CartModule } from "./cart/cart.module";
 import { PromotionModule } from "./promotions/promotion.module";
 import { CheckoutModule } from "./checkout/checkout.module";
+import { OrderModule } from "./orders/order.module";
 
 @Module({
   imports: [
@@ -42,7 +43,8 @@ import { CheckoutModule } from "./checkout/checkout.module";
     InventoryModule,
     CartModule,
     PromotionModule,
-    CheckoutModule
+    CheckoutModule,
+    OrderModule
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }, { provide: APP_GUARD, useClass: AuthorizationGuard }, { provide: APP_INTERCEPTOR, useClass: RequestLoggingInterceptor }, { provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor }, { provide: APP_FILTER, useClass: ApiExceptionFilter }]
