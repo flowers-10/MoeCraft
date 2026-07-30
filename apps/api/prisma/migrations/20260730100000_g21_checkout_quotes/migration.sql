@@ -1,0 +1,22 @@
+CREATE TABLE `CheckoutQuote` (
+  `id` CHAR(36) NOT NULL,
+  `userId` VARCHAR(191) NOT NULL,
+  `version` VARCHAR(20) NOT NULL,
+  `signature` VARCHAR(100) NOT NULL,
+  `currency` CHAR(3) NOT NULL DEFAULT 'CNY',
+  `addressSnapshot` JSON NOT NULL,
+  `couponCode` VARCHAR(40) NULL,
+  `originalAmount` DECIMAL(10, 2) NOT NULL,
+  `shippingAmount` DECIMAL(10, 2) NOT NULL DEFAULT 0,
+  `discountAmount` DECIMAL(10, 2) NOT NULL DEFAULT 0,
+  `payableAmount` DECIMAL(10, 2) NOT NULL,
+  `snapshot` JSON NOT NULL,
+  `expiresAt` DATETIME(3) NOT NULL,
+  `consumedAt` DATETIME(3) NULL,
+  `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updatedAt` DATETIME(3) NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `CheckoutQuote_userId_expiresAt_idx` (`userId`, `expiresAt`),
+  INDEX `CheckoutQuote_expiresAt_consumedAt_idx` (`expiresAt`, `consumedAt`),
+  CONSTRAINT `CheckoutQuote_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

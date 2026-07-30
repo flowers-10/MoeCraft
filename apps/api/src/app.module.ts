@@ -21,6 +21,7 @@ import { RequestLoggingInterceptor } from "./observability/request-logging.inter
 import { InventoryModule } from "./inventory/inventory.module";
 import { CartModule } from "./cart/cart.module";
 import { PromotionModule } from "./promotions/promotion.module";
+import { CheckoutModule } from "./checkout/checkout.module";
 
 @Module({
   imports: [
@@ -40,7 +41,8 @@ import { PromotionModule } from "./promotions/promotion.module";
     ProductModule,
     InventoryModule,
     CartModule,
-    PromotionModule
+    PromotionModule,
+    CheckoutModule
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }, { provide: APP_GUARD, useClass: AuthorizationGuard }, { provide: APP_INTERCEPTOR, useClass: RequestLoggingInterceptor }, { provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor }, { provide: APP_FILTER, useClass: ApiExceptionFilter }]

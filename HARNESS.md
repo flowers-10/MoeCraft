@@ -283,9 +283,9 @@ MoeCraft 的目标不是单店展示站，而是一个允许商家申请入驻�
 
 #### G21 `feat(checkout): implement quote and order preview`
 
-- [ ] 结算试算返回按店铺分组的商品、运费、优惠、应付金额与失效原因。
-- [ ] 提交前复核地址、价格、库存、限购、店铺状态、优惠券。
-- [ ] 客户端传值不得作为最终金额；quote 有短期有效期和签名/版本。
+- [x] 结算试算返回按店铺分组的商品、运费、优惠、应付金额与失效原因。
+- [x] 提交前复核地址、价格、库存、限购、店铺状态、优惠券。
+- [x] 客户端传值不得作为最终金额；quote 有短期有效期和签名/版本。
 
 #### G22 `feat(order): implement atomic order creation and state machine`
 
