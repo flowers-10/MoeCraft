@@ -1,6 +1,8 @@
 import type { MessageKey } from "./zh-CN";
 
 export const enUS = {
+  "nav.jobs":"Failed jobs",
+  "permission.button.jobsReplay":"Replay failed jobs",
   "nav.productReviews":"Product reviews",
   "header.myAccount":"My account","header.onboardingRecord":"Onboarding record","header.onboardingRecordHint":"View your approved application","header.storeProfile":"Store profile","header.storeProfileHint":"View your current store details",
   "nav.system":"System","nav.platform":"Platform","nav.merchant":"Merchant","nav.commerce":"Commerce","nav.storeProfile":"Store profile","nav.overview":"Overview","nav.onboarding":"Onboarding","nav.products":"Products","nav.inventory":"Inventory","nav.orders":"Orders","nav.afterSales":"After-sales","nav.members":"Team","nav.reports":"Analytics","nav.settings":"Settings",

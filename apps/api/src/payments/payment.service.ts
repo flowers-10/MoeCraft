@@ -7,6 +7,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { assertPaymentFacts, canApplyPaymentEvent, signSandboxWebhook } from "./payment-domain";
 import type { ProviderWebhookEvent } from "./payment-provider";
 import { SandboxPaymentProvider } from "./sandbox-payment.provider";
+import { ApiMetricsService } from "../observability/api-metrics.service";
 
 const paymentInclude=Prisma.validator<Prisma.PaymentIntentInclude>()({order:{select:{orderNumber:true,userId:true}}});
 type PaymentRecord=Prisma.PaymentIntentGetPayload<{include:typeof paymentInclude}>;
@@ -14,7 +15,7 @@ const money=(value:Prisma.Decimal|string|number)=>new Prisma.Decimal(value).toFi
 
 @Injectable()
 export class PaymentService{
-  constructor(private readonly prisma:PrismaService,private readonly provider:SandboxPaymentProvider,private readonly config:ConfigService<AppEnvironment,true>){}
+  constructor(private readonly prisma:PrismaService,private readonly provider:SandboxPaymentProvider,private readonly config:ConfigService<AppEnvironment,true>,private readonly metrics:ApiMetricsService=new ApiMetricsService()){}
 
   async start(userId:string,orderId:string):Promise<PaymentView>{
     const payment=await this.prisma.paymentIntent.findFirst({where:{orderId,order:{userId}},include:paymentInclude});
@@ -49,7 +50,7 @@ export class PaymentService{
     }catch(error){
       if(error instanceof Prisma.PrismaClientKnownRequestError&&error.code==="P2002"){
         const duplicate=await this.prisma.paymentEvent.findUnique({where:{providerEventId:event.eventId},include:{paymentIntent:{include:paymentInclude}}});
-        if(duplicate?.paymentIntent)return this.view(duplicate.paymentIntent);
+        if(duplicate?.paymentIntent){this.metrics.recordCommerce("payment_webhook_duplicate");return this.view(duplicate.paymentIntent);}
       }
       throw error;
     }
@@ -60,6 +61,7 @@ export class PaymentService{
     }
     try{assertPaymentFacts(money(payment.amount),payment.currency,event.amount,event.currency);}catch(error){
       const code=error instanceof Error?error.message:"PAYMENT_FACT_MISMATCH";
+      this.metrics.recordCommerce("payment_failure");
       await this.prisma.paymentEvent.update({where:{id:archive.id},data:{paymentIntentId:payment.id,errorCode:code,processedAt:new Date()}});
       throw new ConflictException(code);
     }
@@ -88,6 +90,7 @@ export class PaymentService{
         await tx.paymentIntent.update({where:{id:payment.id},data:{status:event.status,closedAt:event.status==="CANCELLED"?new Date():undefined}});
       }
       await tx.paymentEvent.update({where:{id:archive.id},data:{paymentIntentId:payment.id,processedAt:new Date()}});
+      this.metrics.recordCommerce(event.status==="SUCCEEDED"?"payment_success":"payment_failure");
       return this.view(await tx.paymentIntent.findUniqueOrThrow({where:{id:payment.id},include:paymentInclude}));
     },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});
   }

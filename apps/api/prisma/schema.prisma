@@ -101,6 +101,18 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum JobType {
+  CLOSE_EXPIRED_ORDER
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  RETRY
+  COMPLETED
+  DEAD_LETTER
+}
+
 model FileAsset {
   id          String     @id @default(cuid())
   ownerId     String
@@ -619,6 +631,27 @@ model OrderExportTask {
 
   @@index([requesterId, createdAt])
   @@index([merchantId, status])
+}
+
+model Job {
+  id            String    @id @default(cuid())
+  type          JobType
+  uniqueKey     String    @unique @db.VarChar(191)
+  payload       Json
+  status        JobStatus @default(PENDING)
+  attempts      Int       @default(0)
+  maxAttempts   Int       @default(5)
+  runAt         DateTime
+  lockedAt      DateTime?
+  lockedBy      String?   @db.VarChar(100)
+  lastError     String?   @db.VarChar(1000)
+  deadLetterAt  DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status, runAt])
+  @@index([deadLetterAt, createdAt])
 }
 
 model Coupon {

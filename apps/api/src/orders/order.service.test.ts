@@ -86,6 +86,7 @@ test("transaction failure rolls back order and payment writes", async () => {
             findUniqueOrThrow: async () => { throw new Error("not reached"); }
           },
           paymentIntent: { create: async () => { state.payments += 1; } },
+          job: { create: async () => ({ id: "job-1" }) },
           orderEvent: { create: async () => { state.events += 1; } },
           cartItem: { deleteMany: async () => { throw new Error("simulated cart failure"); } }
         });

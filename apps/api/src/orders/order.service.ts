@@ -8,6 +8,7 @@ import { assertQuoteSignature } from "../checkout/checkout-domain";
 import type { AppEnvironment } from "../config/environment";
 import { PrismaService } from "../prisma/prisma.service";
 import { PromotionService } from "../promotions/promotion.service";
+import { ApiMetricsService } from "../observability/api-metrics.service";
 import type { OrderListQueryDto, SubmitOrderDto } from "./order.dto";
 import { canApplyOrderTransition, createIdempotencyFingerprint, createPublicOrderNumber, maskPhone } from "./order-domain";
 
@@ -24,7 +25,8 @@ export class OrderService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly promotions: PromotionService,
-    private readonly config: ConfigService<AppEnvironment, true>
+    private readonly config: ConfigService<AppEnvironment, true>,
+    private readonly metrics: ApiMetricsService = new ApiMetricsService()
   ) {}
 
   async create(userId: string, idempotencyKey: string | undefined, dto: SubmitOrderDto): Promise<OrderView> {
@@ -100,7 +102,7 @@ export class OrderService {
               where: { id: inventory.id, version: inventory.version, onHand: inventory.onHand, reserved: inventory.reserved },
               data: { reserved: { increment: snapshot.quantity }, version: { increment: 1 } }
             });
-            if (!changed.count) throw new ConflictException("ORDER_INVENTORY_CONFLICT");
+            if (!changed.count){this.metrics.recordCommerce("inventory_lock_failure");throw new ConflictException("ORDER_INVENTORY_CONFLICT");}
             await tx.inventoryLedgerEntry.create({
               data: { inventoryId: inventory.id, type: "RESERVATION_CREATED", onHandDelta: 0, reservedDelta: snapshot.quantity,
                 onHandAfter: inventory.onHand, reservedAfter: inventory.reserved + snapshot.quantity, reason: "订单创建锁定库存",
@@ -118,11 +120,14 @@ export class OrderService {
           if (money(redemption.discountAmount) !== quote.discountAmount) throw new ConflictException("ORDER_COUPON_CHANGED");
         }
         await tx.paymentIntent.create({ data: { orderId, status: "PENDING", provider: "SANDBOX", amount: new Prisma.Decimal(quote.payableAmount), currency: quote.currency, expiresAt: row.expiresAt } });
+        await tx.job.create({data:{type:"CLOSE_EXPIRED_ORDER",uniqueKey:`close-order:${orderId}`,payload:{orderId},runAt:row.expiresAt}});
         await tx.orderEvent.create({ data: { orderId, actorId: userId, toStatus: "PENDING_PAYMENT", type: "CREATED" } });
         const consumed = await tx.checkoutQuote.updateMany({ where: { id: quote.id, consumedAt: null }, data: { consumedAt: new Date() } });
         if (!consumed.count) throw new ConflictException("CHECKOUT_QUOTE_CONSUMED");
         await tx.cartItem.deleteMany({ where: { id: { in: quoteItems.map((item) => item.cartItemId) }, cart: { userId } } });
-        return this.view(await tx.order.findUniqueOrThrow({ where: { id: orderId }, include: orderInclude }));
+        const result=this.view(await tx.order.findUniqueOrThrow({ where: { id: orderId }, include: orderInclude }));
+        this.metrics.recordCommerce("order_create_success");
+        return result;
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
@@ -130,6 +135,7 @@ export class OrderService {
         if (raced?.requestHash === requestHash) return this.view(raced);
         throw new ConflictException("IDEMPOTENCY_KEY_CONFLICT");
       }
+      this.metrics.recordCommerce("order_create_failure");
       throw error;
     }
   }

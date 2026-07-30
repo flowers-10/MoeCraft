@@ -24,9 +24,10 @@ const isOwner = computed(() => props.roles.includes("MERCHANT_OWNER"));
 const can = (key: AdminButtonPermission) => isOwner.value || props.buttonPermissions.includes(key);
 const staff = reactive({ username: "", displayName: "", password: "", routePermissions: ["system.overview"] as AdminRoutePermission[], buttonPermissions: [] as AdminButtonPermission[] });
 const routeOptions = [...MERCHANT_STAFF_ROUTE_PERMISSIONS];
-const buttonOptions = ADMIN_BUTTON_PERMISSIONS.filter((key) => key !== "products.review");
+const buttonOptions = ADMIN_BUTTON_PERMISSIONS.filter((key) => key !== "products.review"&&key!=="jobs.replay");
 const routeLabelKeys: Record<AdminRoutePermission, MessageKey> = {
   "system.overview": "nav.overview",
+  "system.jobs": "nav.jobs",
   "platform.onboarding": "nav.onboarding",
   "platform.catalog": "nav.catalog",
   "platform.productReview": "nav.productReviews",
@@ -50,6 +51,7 @@ const buttonLabelKeys: Record<AdminButtonPermission, MessageKey> = {
   "inventory.adjust": "permission.button.inventoryAdjust",
   "promotions.manage": "permission.button.promotionsManage",
   "orders.manage": "permission.button.ordersManage",
+  "jobs.replay": "permission.button.jobsReplay",
   "afterSales.manage": "permission.button.afterSalesManage",
   "reports.view": "permission.button.reportsView"
 };

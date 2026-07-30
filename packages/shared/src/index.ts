@@ -7,6 +7,7 @@ export * from "./promotion";
 export * from "./checkout";
 export * from "./order";
 export * from "./payment";
+export * from "./jobs";
 export * from "./errors";
 export * from "./permissions";
 export * from "./primitives";

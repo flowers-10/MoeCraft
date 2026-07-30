@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import type { AppEnvironment } from "../config/environment";
 import { PrismaService } from "../prisma/prisma.service";
 import { PromotionService } from "../promotions/promotion.service";
+import { ApiMetricsService } from "../observability/api-metrics.service";
 import type { CreateCheckoutQuoteDto } from "./checkout.dto";
 import { CHECKOUT_QUOTE_TTL_MS, CHECKOUT_QUOTE_VERSION, createQuoteSignature, summarizeQuoteGroups } from "./checkout-domain";
 
@@ -16,7 +17,8 @@ export class CheckoutService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly promotions: PromotionService,
-    private readonly config: ConfigService<AppEnvironment, true>
+    private readonly config: ConfigService<AppEnvironment, true>,
+    private readonly metrics: ApiMetricsService = new ApiMetricsService()
   ) {}
 
   async createQuote(userId: string, dto: CreateCheckoutQuoteDto): Promise<CheckoutQuote> {
@@ -145,6 +147,7 @@ export class CheckoutService {
         expiresAt
       }
     });
+    this.metrics.recordCommerce("checkout_quote_success");
     return view;
   }
 
@@ -168,4 +171,3 @@ export class CheckoutService {
     return null;
   }
 }
-

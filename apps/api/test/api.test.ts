@@ -171,6 +171,21 @@ test("request metrics aggregate status buckets without route-level cardinality",
   assert.ok(snapshot.uptimeSeconds >= 0);
 });
 
+test("commerce metrics expose transaction counters, backlog gauges and alerts without identifiers", () => {
+  const metrics = new ApiMetricsService();
+  metrics.recordCommerce("checkout_quote_success");
+  metrics.recordCommerce("order_create_success");
+  metrics.recordCommerce("inventory_lock_failure");
+  metrics.setCommerceGauge("payment_webhook_backlog", 2);
+  metrics.setCommerceGauge("jobs_dead_letter", 1);
+  const commerce = metrics.snapshot().commerce;
+  assert.equal(commerce.counters.checkout_quote_success, 1);
+  assert.equal(commerce.counters.order_create_success, 1);
+  assert.equal(commerce.gauges.payment_webhook_backlog, 2);
+  assert.deepEqual(commerce.alerts.map((alert) => alert.code).sort(), ["INVENTORY_LOCK_FAILURES", "JOB_DEAD_LETTERS", "PAYMENT_WEBHOOK_BACKLOG"]);
+  assert.equal(JSON.stringify(commerce).includes("userId"), false);
+});
+
 test("trace context preserves valid upstream trace IDs and replaces invalid context", () => {
   const firstRequest = { headers: { traceparent: "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01" } };
   const firstHeaders: Record<string, string> = {};

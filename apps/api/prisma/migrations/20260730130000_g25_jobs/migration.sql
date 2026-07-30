@@ -1,0 +1,21 @@
+CREATE TABLE `Job` (
+  `id` VARCHAR(191) NOT NULL,
+  `type` ENUM('CLOSE_EXPIRED_ORDER') NOT NULL,
+  `uniqueKey` VARCHAR(191) NOT NULL,
+  `payload` JSON NOT NULL,
+  `status` ENUM('PENDING','RUNNING','RETRY','COMPLETED','DEAD_LETTER') NOT NULL DEFAULT 'PENDING',
+  `attempts` INTEGER NOT NULL DEFAULT 0,
+  `maxAttempts` INTEGER NOT NULL DEFAULT 5,
+  `runAt` DATETIME(3) NOT NULL,
+  `lockedAt` DATETIME(3) NULL,
+  `lockedBy` VARCHAR(100) NULL,
+  `lastError` VARCHAR(1000) NULL,
+  `deadLetterAt` DATETIME(3) NULL,
+  `completedAt` DATETIME(3) NULL,
+  `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updatedAt` DATETIME(3) NOT NULL,
+  UNIQUE INDEX `Job_uniqueKey_key` (`uniqueKey`),
+  INDEX `Job_status_runAt_idx` (`status`,`runAt`),
+  INDEX `Job_deadLetterAt_createdAt_idx` (`deadLetterAt`,`createdAt`),
+  PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

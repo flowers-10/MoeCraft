@@ -6,7 +6,7 @@ const merchantRoles:UserRole[]=["MERCHANT_OWNER","MERCHANT_STAFF"];
 const platformRoles:UserRole[]=["PLATFORM_ADMIN","PLATFORM_OPERATOR","CUSTOMER"];
 
 export const navigationTree:NavigationNode[]=[
-  {id:"system",label:"nav.system",icon:"⌂",children:[{id:"overview",label:"nav.overview",icon:"·",routeName:"overview",accessKey:"system.overview"}]},
+  {id:"system",label:"nav.system",icon:"⌂",children:[{id:"overview",label:"nav.overview",icon:"·",routeName:"overview",accessKey:"system.overview"},{id:"jobs",label:"nav.jobs",icon:"·",routeName:"jobs",accessKey:"system.jobs",roles:["PLATFORM_ADMIN","PLATFORM_OPERATOR"]}]},
   {id:"platform",label:"nav.platform",icon:"◇",roles:platformRoles,children:[
     {id:"onboarding",label:"nav.onboarding",icon:"·",routeName:"onboarding",accessKey:"platform.onboarding",roles:platformRoles},
     {id:"catalog",label:"nav.catalog",icon:"·",routeName:"catalog",accessKey:"platform.catalog",roles:["PLATFORM_ADMIN","PLATFORM_OPERATOR"]},
