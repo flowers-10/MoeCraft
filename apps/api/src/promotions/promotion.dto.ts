@@ -1,11 +1,13 @@
 import { Type } from "class-transformer";
 import { ArrayMaxSize, IsArray, IsDateString, IsIn, IsInt, IsNumberString, IsOptional, IsString, Max, MaxLength, Min, MinLength, ValidateNested } from "class-validator";
-import { COUPON_TYPES, type CouponType } from "@moecraft/shared";
+import type { CouponType } from "@moecraft/shared";
+
+const couponTypes = ["FIXED", "PERCENTAGE"] as const satisfies readonly CouponType[];
 
 export class CreateCouponDto {
   @IsString() @MinLength(3) @MaxLength(40) code!: string;
   @IsString() @MinLength(2) @MaxLength(160) name!: string;
-  @IsIn(COUPON_TYPES) type!: CouponType;
+  @IsIn(couponTypes) type!: CouponType;
   @IsNumberString() value!: string;
   @IsNumberString() minimumAmount!: string;
   @IsDateString() startsAt!: string;
