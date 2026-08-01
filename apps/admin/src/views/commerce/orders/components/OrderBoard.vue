@@ -14,6 +14,7 @@ import {
   type UiTableColumn,
 } from "@moecraft/ui";
 import { useOrderManagement } from "../composables/useOrderManagement";
+import ShipmentPanel from "./ShipmentPanel.vue";
 
 const props = withDefaults(defineProps<{ buttonPermissions?: AdminButtonPermission[] }>(), {
   buttonPermissions: () => [],
@@ -164,6 +165,13 @@ onMounted(state.load);
                 <b>¥{{ item.payableAmount }}</b>
               </div>
             </div>
+            <ShipmentPanel
+              :child="child"
+              :tracking="state.tracking.value"
+              :busy="state.busy.value"
+              :can-manage="canManage"
+              @ship="payload => state.ship(child.id, payload)"
+            />
             <template #footer>
               <div class="merchant-total"><span>店铺应付</span><strong>¥{{ child.payableAmount }}</strong></div>
             </template>

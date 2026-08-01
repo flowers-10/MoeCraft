@@ -103,6 +103,12 @@ enum PaymentStatus {
 
 enum JobType {
   CLOSE_EXPIRED_ORDER
+  AUTO_CONFIRM_RECEIPT
+}
+
+enum ShipmentStatus {
+  SHIPPED
+  DELIVERED
 }
 
 enum JobStatus {
@@ -552,6 +558,7 @@ model MerchantOrder {
   merchant         Merchant     @relation(fields: [merchantId], references: [id], onDelete: Restrict)
   store            Store        @relation(fields: [storeId], references: [id], onDelete: Restrict)
   items            OrderItem[]
+  shipments        Shipment[]
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
@@ -576,13 +583,44 @@ model OrderItem {
   discountAmount   Decimal       @default(0) @db.Decimal(10, 2)
   payableAmount    Decimal       @db.Decimal(10, 2)
   pricingSnapshot  Json
-  order            Order         @relation(fields: [orderId], references: [id], onDelete: Restrict)
-  merchantOrder    MerchantOrder @relation(fields: [merchantOrderId], references: [id], onDelete: Restrict)
-  createdAt        DateTime      @default(now())
+  order            Order          @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  merchantOrder    MerchantOrder  @relation(fields: [merchantOrderId], references: [id], onDelete: Restrict)
+  shipmentItems    ShipmentItem[]
+  createdAt        DateTime       @default(now())
 
   @@index([orderId])
   @@index([merchantOrderId])
   @@index([skuId])
+}
+
+model Shipment {
+  id              String         @id @default(cuid())
+  merchantOrderId String
+  carrier         String         @db.VarChar(40)
+  trackingNumber  String         @db.VarChar(80)
+  status          ShipmentStatus @default(SHIPPED)
+  note            String?        @db.VarChar(500)
+  shippedAt       DateTime       @default(now())
+  deliveredAt     DateTime?
+  createdBy       String?
+  merchantOrder   MerchantOrder  @relation(fields: [merchantOrderId], references: [id], onDelete: Restrict)
+  items           ShipmentItem[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@unique([merchantOrderId, carrier, trackingNumber])
+  @@index([merchantOrderId, createdAt])
+}
+
+model ShipmentItem {
+  id          String   @id @default(cuid())
+  shipmentId  String
+  orderItemId String   @db.Char(36)
+  quantity    Int
+  shipment    Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+
+  @@index([orderItemId])
 }
 
 model OrderEvent {

@@ -132,7 +132,7 @@ function crossStoreOrderRecord() {
   const child = (id: string, merchantId: string, storeId: string, storeName: string) => ({
     id, orderId: "order-1", merchantId, storeId, status: "PAID", currency: "CNY",
     originalAmount: dec(10), shippingAmount: dec(0), discountAmount: dec(0), payableAmount: dec(10),
-    merchantNote: null, createdAt: new Date(), store: { name: storeName },
+    merchantNote: null, createdAt: new Date(), store: { name: storeName }, shipments: [],
     items: [{
       id: `item-${id}`, merchantOrderId: id, storeId, productId: "product-1", skuId: "sku-1",
       productTitle: "演示手办", skuName: "标准版", coverFileId: null, quantity: 1, currency: "CNY",

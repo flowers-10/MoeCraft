@@ -1,5 +1,6 @@
 const DEFAULT_PORT = 3102;
 const DEFAULT_CORS_ORIGINS = ["http://localhost:3100", "http://localhost:3101"];
+const DEFAULT_ORDER_AUTO_CONFIRM_DAYS = 15;
 
 export type AppEnvironment = {
   DATABASE_URL: string;
@@ -8,6 +9,7 @@ export type AppEnvironment = {
   PORT: number;
   CORS_ORIGINS: string[];
   SERVICE_ENVIRONMENT: string;
+  ORDER_AUTO_CONFIRM_DAYS: number;
   TELEMETRY_EXPORT_URL: string | null;
   TELEMETRY_EXPORT_TOKEN: string | null;
 };
@@ -72,6 +74,15 @@ function parseOptionalUrl(value: unknown): string | null {
   return url;
 }
 
+function parseAutoConfirmDays(value: unknown): number {
+  if (value === undefined || value === "") return DEFAULT_ORDER_AUTO_CONFIRM_DAYS;
+  const days = Number(value);
+  if (!Number.isInteger(days) || days < 1 || days > 365) {
+    throw new Error("Environment variable ORDER_AUTO_CONFIRM_DAYS must be an integer between 1 and 365");
+  }
+  return days;
+}
+
 export function validateEnvironment(environment: Record<string, unknown>): AppEnvironment {
   const databaseUrl = requireValue(environment, "DATABASE_URL");
   const jwtAccessSecret = requireValue(environment, "JWT_ACCESS_SECRET");
@@ -91,6 +102,7 @@ export function validateEnvironment(environment: Record<string, unknown>): AppEn
     PORT: parsePort(environment.PORT),
     CORS_ORIGINS: parseOrigins(environment.CORS_ORIGINS),
     SERVICE_ENVIRONMENT: optionalValue(environment.SERVICE_ENVIRONMENT) ?? "local",
+    ORDER_AUTO_CONFIRM_DAYS: parseAutoConfirmDays(environment.ORDER_AUTO_CONFIRM_DAYS),
     TELEMETRY_EXPORT_URL: parseOptionalUrl(environment.TELEMETRY_EXPORT_URL),
     TELEMETRY_EXPORT_TOKEN: optionalValue(environment.TELEMETRY_EXPORT_TOKEN)
   };

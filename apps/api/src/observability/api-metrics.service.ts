@@ -16,7 +16,7 @@ export type ApiMetricsSnapshot = Readonly<{
 export type CommerceMetric =
   | "checkout_quote_success" | "checkout_quote_failure" | "order_create_success" | "order_create_failure"
   | "inventory_lock_failure" | "payment_success" | "payment_failure" | "payment_webhook_duplicate"
-  | "job_completed" | "job_dead_letter";
+  | "shipment_created" | "job_completed" | "job_dead_letter";
 
 @Injectable()
 export class ApiMetricsService {

@@ -1,5 +1,6 @@
 import type { OrderStatus, PaymentStatus } from "./statuses";
 import type { ShippingAddressSnapshot } from "./checkout";
+import type { ShipmentView } from "./shipping";
 
 export type OrderItemView = {
   id: string; merchantOrderId: string; storeId: string; skuId: string; productId: string;
@@ -9,6 +10,9 @@ export type OrderItemView = {
 export type MerchantOrderView = {
   id: string; merchantId: string; storeId: string; storeName: string; status: OrderStatus;
   originalAmount: string; shippingAmount: string; discountAmount: string; payableAmount: string; merchantNote: string | null; items: OrderItemView[];
+  shipments: ShipmentView[];
+  /** 管理端能力提示：仅当调用者是该子单所属商家且子单处于可发货状态时由服务端置真。 */
+  shippable: boolean;
 };
 export type OrderPaymentSummary = {
   id: string; status: PaymentStatus; provider: string; amount: string; currency: string; expiresAt: string;

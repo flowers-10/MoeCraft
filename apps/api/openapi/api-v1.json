@@ -2624,6 +2624,39 @@
         ]
       }
     },
+    "/api/v1/orders/{id}/tracking": {
+      "get": {
+        "operationId": "BuyerOrderController_tracking",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BuyerOrder"
+        ]
+      }
+    },
     "/api/v1/orders/{id}/cancel": {
       "patch": {
         "operationId": "BuyerOrderController_cancel",
@@ -2766,6 +2799,39 @@
         ]
       }
     },
+    "/api/v1/admin/orders/{id}/tracking": {
+      "get": {
+        "operationId": "AdminOrderController_tracking",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "AdminOrder"
+        ]
+      }
+    },
     "/api/v1/admin/orders/{id}/merchant-orders/{merchantOrderId}/note": {
       "patch": {
         "operationId": "AdminOrderController_note",
@@ -2799,6 +2865,54 @@
         },
         "responses": {
           "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "AdminOrder"
+        ]
+      }
+    },
+    "/api/v1/admin/orders/{id}/merchant-orders/{merchantOrderId}/shipments": {
+      "post": {
+        "operationId": "AdminOrderController_ship",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "merchantOrderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateShipmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
             "description": "",
             "content": {
               "application/json": {
@@ -3905,6 +4019,10 @@
             "type": "string",
             "maxLength": 80
           },
+          "imageFileId": {
+            "type": "string",
+            "maxLength": 191
+          },
           "optionValues": {
             "type": "object",
             "additionalProperties": {
@@ -4132,7 +4250,6 @@
           },
           "reason": {
             "type": "string",
-            "minLength": 2,
             "maxLength": 500
           },
           "expectedVersion": {
@@ -4141,8 +4258,7 @@
           }
         },
         "required": [
-          "delta",
-          "reason"
+          "delta"
         ]
       },
       "SetLowStockThresholdDto": {
@@ -4440,6 +4556,62 @@
         },
         "required": [
           "note"
+        ]
+      },
+      "ShipmentLineDto": {
+        "type": "object",
+        "properties": {
+          "orderItemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantity": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 100000
+          }
+        },
+        "required": [
+          "orderItemId",
+          "quantity"
+        ]
+      },
+      "CreateShipmentDto": {
+        "type": "object",
+        "properties": {
+          "carrier": {
+            "type": "string",
+            "enum": [
+              "SF",
+              "ZTO",
+              "YTO",
+              "STO",
+              "YD",
+              "JD",
+              "EMS"
+            ]
+          },
+          "trackingNumber": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9-]{4,80}$"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "items": {
+            "minItems": 1,
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShipmentLineDto"
+            }
+          }
+        },
+        "required": [
+          "carrier",
+          "trackingNumber",
+          "items"
         ]
       },
       "OrderListQueryDto": {

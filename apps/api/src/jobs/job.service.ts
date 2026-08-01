@@ -6,6 +6,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { ApiMetricsService } from "../observability/api-metrics.service";
 import { SandboxPaymentProvider } from "../payments/sandbox-payment.provider";
 import { shouldReleaseCouponReservation } from "../orders/order-domain";
+import { shouldAutoConfirmReceipt } from "../orders/shipment-domain";
 import { nextRetryAt, resolveJobFailure, shouldCloseExpiredOrder } from "./job-domain";
 
 @Injectable()
@@ -20,6 +21,7 @@ export class JobService{
       if(!job)break;
       try{
         if(job.type==="CLOSE_EXPIRED_ORDER")await this.closeExpiredOrder(job);
+        else if(job.type==="AUTO_CONFIRM_RECEIPT")await this.autoConfirmReceipt(job);
         await this.prisma.job.update({where:{id:job.id},data:{status:"COMPLETED",completedAt:new Date(),lockedAt:null,lockedBy:null,lastError:null}});
         this.metrics.recordCommerce("job_completed");processed+=1;
       }catch(error){await this.fail(job,error);}
@@ -70,6 +72,20 @@ export class JobService{
       await tx.merchantOrder.updateMany({where:{orderId:order.id,status:"PENDING_PAYMENT"},data:{status:"CLOSED"}});
       await tx.order.update({where:{id:order.id},data:{status:"CLOSED",cancelledAt:new Date()}});
       await tx.orderEvent.create({data:{orderId:order.id,fromStatus:"PENDING_PAYMENT",toStatus:"CLOSED",type:"PAYMENT_TIMEOUT"}});
+    },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});
+  }
+
+  /** 发货满 N 天（ORDER_AUTO_CONFIRM_DAYS）后买家仍未确认则自动完成；状态已变化则静默跳过，保证可重放。 */
+  private async autoConfirmReceipt(job:Job){
+    const payload=job.payload as {orderId?:unknown};
+    if(typeof payload.orderId!=="string")throw new Error("JOB_ORDER_ID_INVALID");
+    await this.prisma.$transaction(async(tx)=>{
+      const order=await tx.order.findUnique({where:{id:payload.orderId as string}});
+      if(!order)throw new NotFoundException("ORDER_NOT_FOUND");
+      if(!shouldAutoConfirmReceipt(order.status))return;
+      await tx.merchantOrder.updateMany({where:{orderId:order.id,status:"SHIPPED"},data:{status:"COMPLETED"}});
+      await tx.order.update({where:{id:order.id},data:{status:"COMPLETED",completedAt:new Date()}});
+      await tx.orderEvent.create({data:{orderId:order.id,fromStatus:"SHIPPED",toStatus:"COMPLETED",type:"AUTO_CONFIRMED",metadata:{jobId:job.id}}});
     },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});
   }
 
