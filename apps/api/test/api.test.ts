@@ -4,6 +4,8 @@ import { BadRequestException, ConflictException, ForbiddenException, NotFoundExc
 import type { Reflector } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
+import { plainToInstance } from "class-transformer";
+import { validate } from "class-validator";
 import type { Prisma } from "@prisma/client";
 import { firstValueFrom, of } from "rxjs";
 import { AppService } from "../src/app.service";
@@ -14,7 +16,7 @@ import { CatalogService } from "../src/catalog/catalog.service";
 import { LocalObjectStorageService } from "../src/files/local-object-storage.service";
 import { resolveApiErrorCode } from "../src/http/api-error-code";
 import { ApiResponseInterceptor } from "../src/http/api-response.interceptor";
-import { applyInventoryDelta, InvalidInventoryMutationError } from "../src/inventory/inventory-domain";
+import { applyInventoryDelta, clampInventoryAdjustment, InvalidInventoryMutationError } from "../src/inventory/inventory-domain";
 import { InventoryService } from "../src/inventory/inventory.service";
 import { clampCartQuantity, evaluateCartItem, mergeCartLines, normalizeGuestLines, type SellableSkuSnapshot } from "../src/cart/cart-domain";
 import { canTransitionMerchantApplication } from "../src/merchants/merchant-onboarding-workflow";
@@ -25,9 +27,54 @@ import { PrismaService } from "../src/prisma/prisma.service";
 import { REQUIRED_DATABASE_MIGRATION } from "../src/prisma/schema-version";
 import { PromotionService } from "../src/promotions/promotion.service";
 import { calculatePromotionQuote } from "../src/promotions/promotion-domain";
+import { CreateCouponDto } from "../src/promotions/promotion.dto";
+import { AdjustInventoryDto } from "../src/inventory/inventory.dto";
 
 type GuardRequest = { headers: { authorization?: string }; user?: RequestPrincipal };
 type GuardMetadata = Partial<Record<"roles" | "permissions" | "adminRoute" | "adminButton", unknown>>;
+
+test("coupon creation needs no customer-facing code and accepts JSON numbers", async () => {
+  const dto = plainToInstance(CreateCouponDto, {
+    name: "夏日优惠",
+    type: "FIXED",
+    value: 200,
+    minimumAmount: 300,
+    startsAt: "2026-08-01T00:45:00.000Z",
+    endsAt: "2026-09-01T00:45:00.000Z",
+    totalLimit: 100,
+    perUserLimit: 1,
+    productIds: []
+  });
+
+  const errors = await validate(dto);
+
+  assert.deepEqual(errors, []);
+  assert.equal(dto.value, "200");
+  assert.equal(dto.minimumAmount, "300");
+});
+
+test("a coupon below its minimum amount is not applied", () => {
+  const quote = calculatePromotionQuote([
+    { skuId: "sku-1", productId: "product-1", storeId: "store-1", quantity: 1, unitPrice: "11.50" }
+  ], {
+    id: "coupon-1", code: "INTERNAL", type: "FIXED", value: "1.00",
+    minimumAmount: "100.00", storeId: "store-1", productIds: []
+  });
+  assert.equal(quote.discountAmount, "0.00");
+  assert.equal(quote.couponId, undefined);
+});
+
+test("inventory adjustment reason is optional", async () => {
+  const dto = plainToInstance(AdjustInventoryDto, { delta: -3, expectedVersion: 1 });
+  assert.deepEqual(await validate(dto), []);
+});
+
+test("inventory adjustment clamps reductions to currently available stock on blur", () => {
+  assert.equal(clampInventoryAdjustment(-122, 121), -121);
+  assert.equal(clampInventoryAdjustment(-20, 121), -20);
+  assert.equal(clampInventoryAdjustment(15, 121), 15);
+  assert.equal(clampInventoryAdjustment(Number.NaN, 121), 0);
+});
 
 test("API response interceptor leaves file streams unwrapped", async () => {
   const stream = new StreamableFile(Buffer.from("image-bytes"), { type: "image/png" });
@@ -575,6 +622,37 @@ test("promotion quote rejects products or stores that are not sellable", async (
   );
 });
 
+test("claiming a coupon returns the existing unused claim instead of failing the user limit", async () => {
+  const existingClaim = { id: "claim-1", couponId: "coupon-1", claimedAt: new Date("2026-08-01T00:00:00.000Z") };
+  const coupon = {
+    id: "coupon-1", status: "ACTIVE", startsAt: new Date(Date.now() - 60_000), endsAt: new Date(Date.now() + 60_000),
+    totalLimit: 100, perUserLimit: 1, _count: { claims: 1 }
+  };
+  const transaction = {
+    coupon: { findUnique: async () => coupon },
+    couponClaim: {
+      findFirst: async () => existingClaim,
+      count: async () => 1,
+      create: async () => { throw new Error("must not create a duplicate claim"); }
+    }
+  };
+  const prisma = { $transaction: async <T>(operation: (tx: typeof transaction) => Promise<T>) => operation(transaction) } as unknown as PrismaService;
+
+  const result = await new PromotionService(prisma).claim("customer-1", "moe10");
+
+  assert.equal(result, existingClaim);
+});
+
+test("claimed coupon ids survive page reload and contain no duplicates", async () => {
+  const prisma = {
+    couponClaim: { findMany: async () => [{ couponId: "coupon-1" }, { couponId: "coupon-1" }, { couponId: "coupon-2" }] }
+  } as unknown as PrismaService;
+
+  const result = await new PromotionService(prisma).claimedCouponIds("customer-1");
+
+  assert.deepEqual(result, ["coupon-1", "coupon-2"]);
+});
+
 test("promotion redemption persists original price, allocations, and the rule snapshot", async () => {
   let redemption: Record<string, unknown> | undefined;
   const coupon = {
@@ -622,4 +700,3 @@ test("promotion redemption persists original price, allocations, and the rule sn
     allocations: [{ skuId: "sku-1", originalAmount: "80.00", discountAmount: "10.00", payableAmount: "70.00" }]
   });
 });
-

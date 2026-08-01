@@ -70,7 +70,7 @@ test("expired checkout quote is rejected before any order write", async () => {
   assert.equal(writes, 0);
 });
 
-test("transaction failure rolls back order and payment writes", async () => {
+test("quote finalization failure rolls back order and payment writes", async () => {
   const row = quoteRow(new Date(Date.now() + 60_000));
   const state = { orders: 0, payments: 0, events: 0 };
   const prisma = {
@@ -79,7 +79,7 @@ test("transaction failure rolls back order and payment writes", async () => {
       const before = { ...state };
       try {
         return await work({
-          checkoutQuote: { findFirst: async () => row, updateMany: async () => ({ count: 1 }) },
+          checkoutQuote: { findFirst: async () => row, updateMany: async () => { throw new Error("simulated quote finalization failure"); } },
           sku: { findMany: async () => [] },
           order: {
             create: async () => { state.orders += 1; },
@@ -87,8 +87,7 @@ test("transaction failure rolls back order and payment writes", async () => {
           },
           paymentIntent: { create: async () => { state.payments += 1; } },
           job: { create: async () => ({ id: "job-1" }) },
-          orderEvent: { create: async () => { state.events += 1; } },
-          cartItem: { deleteMany: async () => { throw new Error("simulated cart failure"); } }
+          orderEvent: { create: async () => { state.events += 1; } }
         });
       } catch (error) {
         Object.assign(state, before);
@@ -97,7 +96,7 @@ test("transaction failure rolls back order and payment writes", async () => {
     }
   } as unknown as PrismaService;
   const service = new OrderService(prisma, promotions, config);
-  await assert.rejects(() => service.create("customer-1", "key-rollback", { quoteId: row.id, signature: row.signature }), /simulated cart failure/);
+  await assert.rejects(() => service.create("customer-1", "key-rollback", { quoteId: row.id, signature: row.signature }), /simulated quote finalization failure/);
   assert.deepEqual(state, { orders: 0, payments: 0, events: 0 });
 });
 

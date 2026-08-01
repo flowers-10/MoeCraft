@@ -1,15 +1,14 @@
-import { Type } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import { ArrayMaxSize, IsArray, IsDateString, IsIn, IsInt, IsNumberString, IsOptional, IsString, Max, MaxLength, Min, MinLength, ValidateNested } from "class-validator";
 import type { CouponType } from "@moecraft/shared";
 
 const couponTypes = ["FIXED", "PERCENTAGE"] as const satisfies readonly CouponType[];
 
 export class CreateCouponDto {
-  @IsString() @MinLength(3) @MaxLength(40) code!: string;
   @IsString() @MinLength(2) @MaxLength(160) name!: string;
   @IsIn(couponTypes) type!: CouponType;
-  @IsNumberString() value!: string;
-  @IsNumberString() minimumAmount!: string;
+  @Transform(({ value }) => typeof value === "number" ? String(value) : value) @IsNumberString() value!: string;
+  @Transform(({ value }) => typeof value === "number" ? String(value) : value) @IsNumberString() minimumAmount!: string;
   @IsDateString() startsAt!: string;
   @IsDateString() endsAt!: string;
   @Type(() => Number) @IsInt() @Min(1) @Max(1_000_000) totalLimit!: number;
@@ -22,12 +21,13 @@ export class SetCouponStatusDto {
 }
 
 export class ClaimCouponDto {
-  @IsString() @MinLength(3) @MaxLength(40) code!: string;
+  @IsString() couponId!: string;
 }
 
 export class PromotionQuoteDto {
   @IsArray() @ArrayMaxSize(200) @ValidateNested({ each: true }) @Type(() => QuoteItemDto) items!: QuoteItemDto[];
   @IsOptional() @IsString() @MaxLength(40) couponCode?: string;
+  @IsOptional() @IsString() couponId?: string;
 }
 
 export class QuoteItemDto {

@@ -2252,6 +2252,917 @@
           "Cart"
         ]
       }
+    },
+    "/api/v1/merchant/promotions": {
+      "get": {
+        "operationId": "MerchantPromotionController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "MerchantPromotion"
+        ]
+      },
+      "post": {
+        "operationId": "MerchantPromotionController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCouponDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "MerchantPromotion"
+        ]
+      }
+    },
+    "/api/v1/merchant/promotions/{id}/status": {
+      "patch": {
+        "operationId": "MerchantPromotionController_setStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetCouponStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "MerchantPromotion"
+        ]
+      }
+    },
+    "/api/v1/promotions/claim": {
+      "post": {
+        "operationId": "PromotionController_claim",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimCouponDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Promotion"
+        ]
+      }
+    },
+    "/api/v1/promotions/claimed": {
+      "get": {
+        "operationId": "PromotionController_claimed",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Promotion"
+        ]
+      }
+    },
+    "/api/v1/promotions/available": {
+      "get": {
+        "operationId": "PromotionController_available",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Promotion"
+        ]
+      }
+    },
+    "/api/v1/promotions/quote": {
+      "post": {
+        "operationId": "PromotionController_quote",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromotionQuoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Promotion"
+        ]
+      }
+    },
+    "/api/v1/public/promotions/stores/{slug}": {
+      "get": {
+        "operationId": "PublicPromotionController_listForStore",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "PublicPromotion"
+        ]
+      }
+    },
+    "/api/v1/checkout/quotes": {
+      "post": {
+        "operationId": "CheckoutController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCheckoutQuoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Checkout"
+        ]
+      }
+    },
+    "/api/v1/orders": {
+      "post": {
+        "operationId": "BuyerOrderController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BuyerOrder"
+        ]
+      },
+      "get": {
+        "operationId": "BuyerOrderController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING_PAYMENT",
+                "PAID",
+                "PARTIALLY_SHIPPED",
+                "SHIPPED",
+                "COMPLETED",
+                "CANCELLED",
+                "AFTER_SALE",
+                "CLOSED"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 80,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BuyerOrder"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}": {
+      "get": {
+        "operationId": "BuyerOrderController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BuyerOrder"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/cancel": {
+      "patch": {
+        "operationId": "BuyerOrderController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BuyerOrder"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/confirm-receipt": {
+      "patch": {
+        "operationId": "BuyerOrderController_confirm",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "BuyerOrder"
+        ]
+      }
+    },
+    "/api/v1/admin/orders": {
+      "get": {
+        "operationId": "AdminOrderController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING_PAYMENT",
+                "PAID",
+                "PARTIALLY_SHIPPED",
+                "SHIPPED",
+                "COMPLETED",
+                "CANCELLED",
+                "AFTER_SALE",
+                "CLOSED"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 80,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "AdminOrder"
+        ]
+      }
+    },
+    "/api/v1/admin/orders/{id}": {
+      "get": {
+        "operationId": "AdminOrderController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "AdminOrder"
+        ]
+      }
+    },
+    "/api/v1/admin/orders/{id}/merchant-orders/{merchantOrderId}/note": {
+      "patch": {
+        "operationId": "AdminOrderController_note",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "merchantOrderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MerchantOrderNoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "AdminOrder"
+        ]
+      }
+    },
+    "/api/v1/admin/orders/exports": {
+      "post": {
+        "operationId": "AdminOrderController_export",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderListQueryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "AdminOrder"
+        ]
+      }
+    },
+    "/api/v1/payments/{orderId}/start": {
+      "post": {
+        "operationId": "PaymentController_start",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Payment"
+        ]
+      }
+    },
+    "/api/v1/payments/{orderId}": {
+      "get": {
+        "operationId": "PaymentController_get",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Payment"
+        ]
+      }
+    },
+    "/api/v1/payments/{orderId}/close": {
+      "post": {
+        "operationId": "PaymentController_close",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Payment"
+        ]
+      }
+    },
+    "/api/v1/payments/{orderId}/simulate": {
+      "post": {
+        "operationId": "PaymentController_simulate",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulatePaymentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Payment"
+        ]
+      }
+    },
+    "/api/v1/payment-webhooks/sandbox": {
+      "post": {
+        "operationId": "PaymentWebhookController_webhook",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "PaymentWebhook"
+        ]
+      }
+    },
+    "/api/v1/admin/jobs/failed": {
+      "get": {
+        "operationId": "JobController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Job"
+        ]
+      }
+    },
+    "/api/v1/admin/jobs/{id}/replay": {
+      "post": {
+        "operationId": "JobController_replay",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Job"
+        ]
+      }
+    },
+    "/api/v1/addresses": {
+      "get": {
+        "operationId": "AddressController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Address"
+        ]
+      },
+      "post": {
+        "operationId": "AddressController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAddressDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Address"
+        ]
+      }
+    },
+    "/api/v1/addresses/{id}": {
+      "patch": {
+        "operationId": "AddressController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAddressDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Address"
+        ]
+      },
+      "delete": {
+        "operationId": "AddressController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Address"
+        ]
+      }
     }
   },
   "info": {
@@ -2610,6 +3521,7 @@
                 "merchant.team",
                 "commerce.products",
                 "commerce.inventory",
+                "commerce.promotions",
                 "commerce.orders",
                 "commerce.afterSales",
                 "commerce.reports"
@@ -2630,7 +3542,9 @@
                 "products.submit",
                 "products.review",
                 "inventory.adjust",
+                "promotions.manage",
                 "orders.manage",
+                "jobs.replay",
                 "afterSales.manage",
                 "reports.view"
               ]
@@ -2659,6 +3573,7 @@
                 "merchant.team",
                 "commerce.products",
                 "commerce.inventory",
+                "commerce.promotions",
                 "commerce.orders",
                 "commerce.afterSales",
                 "commerce.reports"
@@ -2679,7 +3594,9 @@
                 "products.submit",
                 "products.review",
                 "inventory.adjust",
+                "promotions.manage",
                 "orders.manage",
+                "jobs.replay",
                 "afterSales.manage",
                 "reports.view"
               ]
@@ -3298,6 +4215,373 @@
           "itemIds",
           "selected"
         ]
+      },
+      "CreateCouponDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 160
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "FIXED",
+              "PERCENTAGE"
+            ]
+          },
+          "value": {
+            "type": "string"
+          },
+          "minimumAmount": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string"
+          },
+          "endsAt": {
+            "type": "string"
+          },
+          "totalLimit": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000000
+          },
+          "perUserLimit": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "productIds": {
+            "default": [],
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "value",
+          "minimumAmount",
+          "startsAt",
+          "endsAt",
+          "totalLimit",
+          "perUserLimit",
+          "productIds"
+        ]
+      },
+      "SetCouponStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "PAUSED"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "ClaimCouponDto": {
+        "type": "object",
+        "properties": {
+          "couponId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "couponId"
+        ]
+      },
+      "QuoteItemDto": {
+        "type": "object",
+        "properties": {
+          "skuId": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 999
+          }
+        },
+        "required": [
+          "skuId",
+          "quantity"
+        ]
+      },
+      "PromotionQuoteDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuoteItemDto"
+            }
+          },
+          "couponCode": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "couponId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "ShippingAddressDto": {
+        "type": "object",
+        "properties": {
+          "recipient": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "phone": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 40
+          },
+          "country": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "province": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "city": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "district": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "addressLine": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 240
+          },
+          "postalCode": {
+            "type": "string",
+            "maxLength": 20
+          }
+        },
+        "required": [
+          "recipient",
+          "phone",
+          "country",
+          "province",
+          "city",
+          "district",
+          "addressLine"
+        ]
+      },
+      "CreateCheckoutQuoteDto": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "$ref": "#/components/schemas/ShippingAddressDto"
+          },
+          "couponCode": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 40
+          },
+          "couponId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "address"
+        ]
+      },
+      "SubmitOrderDto": {
+        "type": "object",
+        "properties": {
+          "quoteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "signature": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "quoteId",
+          "signature"
+        ]
+      },
+      "MerchantOrderNoteDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "note"
+        ]
+      },
+      "OrderListQueryDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "enum": [
+              "PENDING_PAYMENT",
+              "PAID",
+              "PARTIALLY_SHIPPED",
+              "SHIPPED",
+              "COMPLETED",
+              "CANCELLED",
+              "AFTER_SALE",
+              "CLOSED"
+            ],
+            "type": "string"
+          },
+          "search": {
+            "type": "string",
+            "maxLength": 80
+          }
+        }
+      },
+      "SimulatePaymentDto": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "string",
+            "enum": [
+              "SUCCEEDED",
+              "FAILED",
+              "CANCELLED"
+            ]
+          }
+        },
+        "required": [
+          "result"
+        ]
+      },
+      "CreateAddressDto": {
+        "type": "object",
+        "properties": {
+          "recipient": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "phone": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 40
+          },
+          "country": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "province": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "city": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "district": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "addressLine": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 240
+          },
+          "postalCode": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "isDefault": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "recipient",
+          "phone",
+          "country",
+          "province",
+          "city",
+          "district",
+          "addressLine"
+        ]
+      },
+      "UpdateAddressDto": {
+        "type": "object",
+        "properties": {
+          "recipient": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "phone": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 40
+          },
+          "country": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "province": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "city": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "district": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "addressLine": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 240
+          },
+          "postalCode": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "isDefault": {
+            "type": "boolean"
+          }
+        }
       }
     }
   }

@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 import type { InventoryLedgerType, InventoryLedgerView, InventoryListItem, InventoryReservationView } from "@moecraft/shared";
 import { Prisma, type Inventory, type InventoryReservation } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
-import { applyInventoryDelta, InvalidInventoryMutationError, type InventorySnapshot } from "./inventory-domain";
+import { applyInventoryDelta, clampInventoryAdjustment, InvalidInventoryMutationError, type InventorySnapshot } from "./inventory-domain";
 import type { AdjustInventoryDto, SetLowStockThresholdDto } from "./inventory.dto";
 
 type TransactionClient = Prisma.TransactionClient;
@@ -35,8 +35,11 @@ export class InventoryService {
       const inventory = await tx.inventory.findFirst({ where: { skuId, sku: { product: { storeId } } }, include: { sku: { include: { product: true } } } });
       if (!inventory) throw new NotFoundException("INVENTORY_NOT_FOUND");
       if (dto.expectedVersion !== undefined && dto.expectedVersion !== inventory.version) throw new ConflictException("INVENTORY_VERSION_CHANGED");
-      const updated = await this.mutate(tx, inventory, dto.delta, 0, "ADJUSTMENT", dto.reason.trim(), userId);
-      await tx.auditLog.create({ data: { actorId: userId, action: "inventory.adjusted", targetType: "Sku", targetId: skuId, metadata: { delta: dto.delta, reason: dto.reason.trim(), version: updated.version } } });
+      const delta = clampInventoryAdjustment(dto.delta, inventory.onHand - inventory.reserved);
+      if (delta === 0) throw new BadRequestException("INVENTORY_ADJUSTMENT_EMPTY");
+      const reason = dto.reason?.trim() || "手动库存调整";
+      const updated = await this.mutate(tx, inventory, delta, 0, "ADJUSTMENT", reason, userId);
+      await tx.auditLog.create({ data: { actorId: userId, action: "inventory.adjusted", targetType: "Sku", targetId: skuId, metadata: { delta, reason, version: updated.version } } });
       return this.itemView({ ...inventory, ...updated });
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
   }

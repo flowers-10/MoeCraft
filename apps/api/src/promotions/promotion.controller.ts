@@ -19,6 +19,14 @@ export class MerchantPromotionController {
 @RequireRoles("CUSTOMER")
 export class PromotionController {
   constructor(private readonly promotions: PromotionService) {}
-  @Post("claim") claim(@Req() req: { user: RequestPrincipal }, @Body() dto: ClaimCouponDto) { return this.promotions.claim(req.user.sub, dto.code); }
+  @Post("claim") claim(@Req() req: { user: RequestPrincipal }, @Body() dto: ClaimCouponDto) { return this.promotions.claim(req.user.sub, dto.couponId); }
+  @Get("claimed") claimed(@Req() req: { user: RequestPrincipal }) { return this.promotions.claimedCouponIds(req.user.sub); }
+  @Get("available") available(@Req() req: { user: RequestPrincipal }) { return this.promotions.available(req.user.sub); }
   @Post("quote") quote(@Req() req: { user: RequestPrincipal }, @Body() dto: PromotionQuoteDto) { return this.promotions.quote(req.user.sub, dto); }
+}
+
+@Controller("public/promotions")
+export class PublicPromotionController {
+  constructor(private readonly promotions: PromotionService) {}
+  @Get("stores/:slug") listForStore(@Param("slug") slug: string) { return this.promotions.publicForStore(slug); }
 }

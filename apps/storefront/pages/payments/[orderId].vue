@@ -5,14 +5,17 @@ useHead({meta:[{name:"robots",content:"noindex, nofollow"}]});
 const route=useRoute();
 const orderId=computed(()=>String(route.params.orderId));
 const api=useOrders();
+const cart=useCart();
 const payment=ref<PaymentView|null>(null);
 const error=ref("");
 const busy=ref(false);
 let timer:ReturnType<typeof setInterval>|undefined;
+let cartSynced=false;
 const labels:Record<PaymentStatus,string>={PENDING:"等待支付",PROCESSING:"支付处理中",SUCCEEDED:"支付成功",FAILED:"支付失败",CANCELLED:"支付已取消",PARTIALLY_REFUNDED:"部分退款",REFUNDED:"已退款"};
 const terminal=computed(()=>payment.value&&["SUCCEEDED","CANCELLED","REFUNDED"].includes(payment.value.status));
-async function load(start=false){try{payment.value=start?await api.startPayment(orderId.value):await api.payment(orderId.value);error.value="";if(terminal.value&&timer)clearInterval(timer);}catch{error.value="无法恢复支付状态，请稍后重试。";}}
-async function simulate(result:SandboxPaymentResult){busy.value=true;try{payment.value=await api.simulate(orderId.value,result);}catch{error.value="沙箱支付操作失败";}finally{busy.value=false;}}
+async function syncPaidCart(){if(payment.value?.status==="SUCCEEDED"&&!cartSynced){await cart.refresh();cartSynced=true;}}
+async function load(start=false){try{payment.value=start?await api.startPayment(orderId.value):await api.payment(orderId.value);await syncPaidCart();error.value="";if(terminal.value&&timer)clearInterval(timer);}catch{error.value="无法恢复支付状态，请稍后重试。";}}
+async function simulate(result:SandboxPaymentResult){busy.value=true;try{payment.value=await api.simulate(orderId.value,result);await syncPaidCart();}catch{error.value="沙箱支付操作失败";}finally{busy.value=false;}}
 onMounted(async()=>{await load(true);timer=setInterval(()=>load(false),2000);});
 onBeforeUnmount(()=>{if(timer)clearInterval(timer);});
 </script>

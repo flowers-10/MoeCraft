@@ -3,7 +3,9 @@ import { test } from "node:test";
 import {
   canApplyOrderTransition,
   createIdempotencyFingerprint,
-  createPublicOrderNumber
+  createPublicOrderNumber,
+  shouldReleaseCouponReservation,
+  createOrderPaymentExpiry
 } from "./order-domain";
 
 test("order state machine rejects payment and fulfillment regressions", () => {
@@ -26,4 +28,15 @@ test("public order numbers are opaque and fixed length", () => {
   const second = createPublicOrderNumber(new Date("2026-07-30T00:00:00Z"));
   assert.match(first, /^MC[A-Z0-9]{20}$/);
   assert.notEqual(first, second);
+});
+
+test("only unpaid terminal transitions release a coupon reservation", () => {
+  assert.equal(shouldReleaseCouponReservation("PENDING_PAYMENT", "CANCELLED"), true);
+  assert.equal(shouldReleaseCouponReservation("PENDING_PAYMENT", "CLOSED"), true);
+  assert.equal(shouldReleaseCouponReservation("PAID", "CANCELLED"), false);
+});
+
+test("a new order receives a full 30 minute payment and inventory lock window", () => {
+  const createdAt = new Date("2026-08-01T10:00:00.000Z");
+  assert.equal(createOrderPaymentExpiry(createdAt).toISOString(), "2026-08-01T10:30:00.000Z");
 });

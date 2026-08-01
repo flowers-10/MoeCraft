@@ -5,6 +5,7 @@ import { hostname } from "node:os";
 import { PrismaService } from "../prisma/prisma.service";
 import { ApiMetricsService } from "../observability/api-metrics.service";
 import { SandboxPaymentProvider } from "../payments/sandbox-payment.provider";
+import { shouldReleaseCouponReservation } from "../orders/order-domain";
 import { nextRetryAt, resolveJobFailure, shouldCloseExpiredOrder } from "./job-domain";
 
 @Injectable()
@@ -64,6 +65,7 @@ export class JobService{
           onHandAfter:reservation.inventory.onHand,reservedAfter:reservation.inventory.reserved-reservation.quantity,reason:"订单支付超时自动释放库存",referenceType:"ORDER_ITEM",referenceId:reservation.referenceId}});
         await tx.inventoryReservation.update({where:{id:reservation.id},data:{status:"EXPIRED",releasedAt:new Date(),releaseReason:"ORDER_PAYMENT_TIMEOUT"}});
       }
+      if(shouldReleaseCouponReservation(order.status,"CLOSED"))await tx.couponRedemption.deleteMany({where:{orderId:order.id}});
       if(order.paymentIntent&&order.paymentIntent.status!=="SUCCEEDED")await tx.paymentIntent.update({where:{id:order.paymentIntent.id},data:{status:"CANCELLED",closedAt:new Date()}});
       await tx.merchantOrder.updateMany({where:{orderId:order.id,status:"PENDING_PAYMENT"},data:{status:"CLOSED"}});
       await tx.order.update({where:{id:order.id},data:{status:"CLOSED",cancelledAt:new Date()}});

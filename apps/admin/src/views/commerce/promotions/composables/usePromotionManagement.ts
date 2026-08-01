@@ -3,12 +3,12 @@ import type { CouponType, CouponView } from "@moecraft/shared";
 import { apiRequest, type ApiError } from "../../../../api";
 
 export type CouponDraft = {
-  code: string; name: string; type: CouponType; value: string; minimumAmount: string;
+  name: string; type: CouponType; value: string; minimumAmount: string;
   startsAt: string; endsAt: string; totalLimit: number; perUserLimit: number; productIds: string;
 };
 
 export const emptyCouponDraft = (): CouponDraft => ({
-  code: "", name: "", type: "FIXED", value: "", minimumAmount: "0.00",
+  name: "", type: "FIXED", value: "", minimumAmount: "0.00",
   startsAt: "", endsAt: "", totalLimit: 100, perUserLimit: 1, productIds: ""
 });
 
@@ -27,7 +27,6 @@ export function usePromotionManagement() {
   const message = (cause: unknown) => {
     const error = cause as Partial<ApiError>;
     return ({
-      COUPON_CODE_EXISTS: "优惠码已存在，请更换后重试。",
       COUPON_PRODUCT_SCOPE_INVALID: "适用商品必须属于当前店铺。",
       COUPON_PERIOD_INVALID: "结束时间必须晚于开始时间。",
       COUPON_PERCENTAGE_INVALID: "百分比优惠必须在 0–100 之间。"
@@ -46,7 +45,6 @@ export function usePromotionManagement() {
         method: "POST",
         body: JSON.stringify({
           ...draft,
-          code: draft.code.trim().toUpperCase(),
           startsAt: new Date(draft.startsAt).toISOString(),
           endsAt: new Date(draft.endsAt).toISOString(),
           productIds: draft.productIds.split(",").map((id) => id.trim()).filter(Boolean)

@@ -4,7 +4,7 @@ import type { PaymentView, SandboxPaymentResult } from "@moecraft/shared";
 import { Prisma } from "@prisma/client";
 import type { AppEnvironment } from "../config/environment";
 import { PrismaService } from "../prisma/prisma.service";
-import { assertPaymentFacts, canApplyPaymentEvent, signSandboxWebhook } from "./payment-domain";
+import { assertPaymentFacts, canApplyPaymentEvent, paidOrderCartItemIds, signSandboxWebhook } from "./payment-domain";
 import type { ProviderWebhookEvent } from "./payment-provider";
 import { SandboxPaymentProvider } from "./sandbox-payment.provider";
 import { ApiMetricsService } from "../observability/api-metrics.service";
@@ -85,6 +85,8 @@ export class PaymentService{
         await tx.paymentIntent.update({where:{id:payment.id},data:{status:"SUCCEEDED",paidAt:new Date(event.occurredAt)}});
         await tx.order.update({where:{id:current.orderId},data:{status:"PAID",paidAt:new Date(event.occurredAt)}});
         await tx.merchantOrder.updateMany({where:{orderId:current.orderId},data:{status:"PAID"}});
+        const cartItemIds=paidOrderCartItemIds(current.order.items);
+        if(cartItemIds.length)await tx.cartItem.deleteMany({where:{id:{in:cartItemIds},cart:{userId:current.order.userId}}});
         await tx.orderEvent.create({data:{orderId:current.orderId,fromStatus:"PENDING_PAYMENT",toStatus:"PAID",type:"PAYMENT_SUCCEEDED",metadata:{providerEventId:event.eventId}}});
       }else{
         await tx.paymentIntent.update({where:{id:payment.id},data:{status:event.status,closedAt:event.status==="CANCELLED"?new Date():undefined}});

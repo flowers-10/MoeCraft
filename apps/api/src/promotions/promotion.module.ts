@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
-import { MerchantPromotionController, PromotionController } from "./promotion.controller";
+import { MerchantPromotionController, PromotionController, PublicPromotionController } from "./promotion.controller";
 import { PromotionService } from "./promotion.service";
 
-@Module({ controllers: [MerchantPromotionController, PromotionController], providers: [PromotionService], exports: [PromotionService] })
+@Module({ controllers: [MerchantPromotionController, PromotionController, PublicPromotionController], providers: [PromotionService], exports: [PromotionService] })
 export class PromotionModule {}

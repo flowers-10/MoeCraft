@@ -11,7 +11,12 @@ const transitions: Readonly<Record<OrderStatus, readonly OrderStatus[]>> = {
   AFTER_SALE: ["COMPLETED", "CLOSED"],
   CLOSED: []
 };
+export const ORDER_PAYMENT_TTL_MS = 30 * 60_000;
+export function createOrderPaymentExpiry(createdAt = new Date()) { return new Date(createdAt.getTime() + ORDER_PAYMENT_TTL_MS); }
 export function canApplyOrderTransition(from: OrderStatus, to: OrderStatus) { return transitions[from].includes(to); }
+export function shouldReleaseCouponReservation(from: OrderStatus, to: OrderStatus) {
+  return from === "PENDING_PAYMENT" && (to === "CANCELLED" || to === "CLOSED");
+}
 export function createIdempotencyFingerprint(quoteId: string, signature: string) {
   return createHash("sha256").update(`${quoteId}.${signature}`).digest("hex");
 }

@@ -15,5 +15,5 @@ export class ShippingAddressDto {
 export class CreateCheckoutQuoteDto {
   @ValidateNested() @Type(() => ShippingAddressDto) address!: ShippingAddressDto;
   @IsOptional() @IsString() @MinLength(3) @MaxLength(40) couponCode?: string;
+  @IsOptional() @IsString() couponId?: string;
 }
-

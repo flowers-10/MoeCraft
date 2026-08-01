@@ -48,3 +48,14 @@ export type PromotionQuote = {
 };
 
 export type CouponRule = Pick<CouponView, "id" | "code" | "type" | "value" | "minimumAmount" | "storeId" | "productIds">;
+
+export type CouponOfferView = Pick<CouponView, "id" | "name" | "type" | "value" | "minimumAmount" | "startsAt" | "endsAt" | "storeId" | "productIds"> & {
+  remainingCount: number;
+};
+
+export type AvailableCouponView = CouponOfferView & {
+  claimId: string;
+  eligible: boolean;
+  discountAmount: string;
+  missingAmount: string;
+};

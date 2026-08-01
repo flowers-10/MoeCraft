@@ -11,6 +11,17 @@ export type ShippingAddressSnapshot = {
   postalCode?: string;
 };
 
+export type ShippingAddressView = ShippingAddressSnapshot & {
+  id: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SaveShippingAddressInput = ShippingAddressSnapshot & {
+  isDefault?: boolean;
+};
+
 export type CheckoutQuoteItem = {
   cartItemId: string;
   skuId: string;
@@ -57,4 +68,3 @@ export type CheckoutQuote = {
   invalidReasons: CartItemInvalidReason[];
   expiresAt: string;
 };
-

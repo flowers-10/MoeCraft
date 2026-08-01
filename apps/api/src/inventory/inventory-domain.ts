@@ -6,6 +6,11 @@ export class InvalidInventoryMutationError extends Error {
   }
 }
 
+export function clampInventoryAdjustment(delta: number, available: number) {
+  if (!Number.isFinite(delta)) return 0;
+  return Math.max(-Math.max(0, Math.trunc(available)), Math.trunc(delta));
+}
+
 export function applyInventoryDelta(snapshot: InventorySnapshot, onHandDelta: number, reservedDelta: number): InventorySnapshot {
   const next = {
     onHand: snapshot.onHand + onHandDelta,

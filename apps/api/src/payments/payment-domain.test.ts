@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   assertPaymentFacts,
   canApplyPaymentEvent,
+  paidOrderCartItemIds,
   signSandboxWebhook,
   verifySandboxWebhookSignature
 } from "./payment-domain";
@@ -25,4 +26,13 @@ test("duplicate or out-of-order events cannot regress a terminal payment", () =>
   assert.equal(canApplyPaymentEvent("SUCCEEDED", "SUCCEEDED"), false);
   assert.equal(canApplyPaymentEvent("SUCCEEDED", "FAILED"), false);
   assert.equal(canApplyPaymentEvent("FAILED", "PROCESSING"), true);
+});
+
+test("payment success removes only cart lines captured by the order snapshot", () => {
+  assert.deepEqual(paidOrderCartItemIds([
+    { pricingSnapshot: { cartItemId: "cart-item-1" } },
+    { pricingSnapshot: { cartItemId: "cart-item-2" } },
+    { pricingSnapshot: { cartItemId: "cart-item-1" } },
+    { pricingSnapshot: null }
+  ]), ["cart-item-1", "cart-item-2"]);
 });

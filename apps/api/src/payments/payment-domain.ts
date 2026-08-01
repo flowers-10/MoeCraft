@@ -20,3 +20,11 @@ export function canApplyPaymentEvent(current:PaymentStatus,next:PaymentStatus){
   if(current==="CANCELLED"&&next!=="REFUNDED")return false;
   return ["PROCESSING","SUCCEEDED","FAILED","CANCELLED","REFUNDED"].includes(next);
 }
+export function paidOrderCartItemIds(items: Array<{ pricingSnapshot: unknown }>) {
+  const ids = items.flatMap(({ pricingSnapshot }) => {
+    if (!pricingSnapshot || typeof pricingSnapshot !== "object" || !("cartItemId" in pricingSnapshot)) return [];
+    const id = (pricingSnapshot as { cartItemId?: unknown }).cartItemId;
+    return typeof id === "string" && id ? [id] : [];
+  });
+  return [...new Set(ids)];
+}

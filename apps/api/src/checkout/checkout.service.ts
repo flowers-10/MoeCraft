@@ -46,6 +46,7 @@ export class CheckoutService {
       ? await this.promotions.quote(userId, {
           items: validItems.map((item) => ({ skuId: item.skuId, quantity: item.quantity })),
           couponCode: dto.couponCode?.trim().toUpperCase()
+          ,couponId: dto.couponId
         })
       : null;
     const allocation = new Map(promotion?.allocations.map((line) => [line.skuId, line]) ?? []);
@@ -123,7 +124,7 @@ export class CheckoutService {
       signature,
       currency: "CNY",
       address,
-      couponCode: dto.couponCode?.trim().toUpperCase() ?? null,
+      couponCode: promotion?.couponCode ?? null,
       groups,
       ...summary,
       valid: summary.invalidCount === 0 && new Prisma.Decimal(summary.payableAmount).greaterThan(0),

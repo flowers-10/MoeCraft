@@ -141,6 +141,7 @@ model User {
   couponClaims CouponClaim[]
   couponRedemptions CouponRedemption[]
   checkoutQuotes CheckoutQuote[]
+  addresses Address[]
   orders Order[]
   merchantApplications MerchantApplication[] @relation("MerchantApplicant")
   reviewedMerchantApplications MerchantApplication[] @relation("MerchantReviewer")
@@ -151,6 +152,25 @@ model User {
   sentStaffInvitations StaffInvitation[] @relation("StaffInviter")
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+}
+
+model Address {
+  id          String   @id @default(cuid())
+  userId      String
+  recipient   String   @db.VarChar(120)
+  phone       String   @db.VarChar(40)
+  country     String   @db.VarChar(80)
+  province    String   @db.VarChar(80)
+  city        String   @db.VarChar(80)
+  district    String   @db.VarChar(80)
+  addressLine String   @db.VarChar(240)
+  postalCode  String?  @db.VarChar(20)
+  isDefault   Boolean  @default(false)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, isDefault, updatedAt])
 }
 
 model Session {

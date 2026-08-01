@@ -6,7 +6,7 @@ import { emptyCouponDraft, type CouponDraft } from "../composables/usePromotionM
 defineProps<{ busy: boolean }>();
 const emit = defineEmits<{ close: []; submit: [draft: CouponDraft] }>();
 const draft = reactive(emptyCouponDraft());
-function submit() { if (draft.code && draft.name && draft.value && draft.startsAt && draft.endsAt) emit("submit", { ...draft }); }
+function submit() { if (draft.name && draft.value && draft.startsAt && draft.endsAt) emit("submit", { ...draft }); }
 </script>
 
 <template>
@@ -14,7 +14,6 @@ function submit() { if (draft.code && draft.name && draft.value && draft.startsA
     <form class="dialog" @submit.prevent="submit">
       <header><div><small>NEW CAMPAIGN</small><h2>创建优惠券</h2></div><button type="button" aria-label="关闭" @click="emit('close')">×</button></header>
       <div class="grid">
-        <label><span>优惠码</span><input v-model="draft.code" maxlength="40" required placeholder="MOE2026"></label>
         <label><span>活动名称</span><input v-model="draft.name" maxlength="160" required placeholder="夏日创作祭"></label>
         <label><span>优惠类型</span><select v-model="draft.type"><option value="FIXED">固定减免</option><option value="PERCENTAGE">百分比</option></select></label>
         <label><span>{{ draft.type === 'FIXED' ? '减免金额（元）' : '优惠百分比' }}</span><input v-model="draft.value" type="number" min="0.01" :max="draft.type === 'PERCENTAGE' ? 100 : undefined" step="0.01" required></label>

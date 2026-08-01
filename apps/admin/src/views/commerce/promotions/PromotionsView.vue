@@ -32,7 +32,7 @@ onMounted(state.load);
     <section class="panel">
       <div v-if="state.loading.value" class="loading">正在加载优惠活动…</div>
       <UiTable v-else :columns="columns" :rows="rows" empty-text="尚未创建优惠券">
-        <template #cell-campaign="{ row }"><div class="campaign"><b>{{ row.name }}</b><code>{{ row.code }}</code><small>{{ productScope(row) }}</small></div></template>
+        <template #cell-campaign="{ row }"><div class="campaign"><b>{{ row.name }}</b><small>{{ productScope(row) }}</small></div></template>
         <template #cell-rule="{ row }"><b>{{ row.type === "FIXED" ? `减 ¥${row.value}` : `${row.value}% OFF` }}</b><small>满 ¥{{ row.minimumAmount }} 可用 · 每人 {{ row.perUserLimit }} 张</small></template>
         <template #cell-period="{ row }"><small>{{ date(String(row.startsAt)) }}<br>至 {{ date(String(row.endsAt)) }}</small></template>
         <template #cell-statistics="{ row }"><b>{{ row.claimedCount }} / {{ row.usedCount }}</b><small>已优惠 ¥{{ row.discountTotal }}</small></template>
@@ -45,5 +45,5 @@ onMounted(state.load);
 </template>
 
 <style scoped lang="less">
-.promotions{background:var(--app-bg)}.summary{display:grid;grid-template-columns:repeat(4,1fr);margin-bottom:18px;border-block:1px solid var(--border);background:var(--surface)}.summary div{display:grid;gap:5px;padding:18px 22px;border-right:1px solid var(--border)}.summary div:last-child{border:0}.summary span,.campaign small,td small{color:var(--text-muted);font-size:10px}.summary b{color:var(--text);font-size:22px}.panel{padding:20px;border:1px solid var(--border);border-radius:8px;background:var(--surface);box-shadow:var(--shadow)}.campaign{display:grid;gap:4px}.campaign b{color:var(--text)}.campaign code{width:max-content;padding:3px 6px;border-radius:4px;background:var(--accent-soft);color:var(--accent)}td b,td small{display:block}.loading{padding:50px;text-align:center}@media(max-width:700px){.summary{grid-template-columns:1fr 1fr}.summary div:nth-child(2){border-right:0}.panel{overflow-x:auto}}
+.promotions{background:var(--app-bg)}.summary{display:grid;grid-template-columns:repeat(4,1fr);margin-bottom:18px;border-block:1px solid var(--border);background:var(--surface)}.summary div{display:grid;gap:5px;padding:18px 22px;border-right:1px solid var(--border)}.summary div:last-child{border:0}.summary span,.campaign small,td small{color:var(--text-muted);font-size:10px}.summary b{color:var(--text);font-size:22px}.panel{padding:20px;border:1px solid var(--border);border-radius:8px;background:var(--surface);box-shadow:var(--shadow)}.campaign{display:grid;gap:4px}.campaign b{color:var(--text)}td b,td small{display:block}.loading{padding:50px;text-align:center}@media(max-width:700px){.summary{grid-template-columns:1fr 1fr}.summary div:nth-child(2){border-right:0}.panel{overflow-x:auto}}
 </style>

@@ -10,7 +10,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { PromotionService } from "../promotions/promotion.service";
 import { ApiMetricsService } from "../observability/api-metrics.service";
 import type { OrderListQueryDto, SubmitOrderDto } from "./order.dto";
-import { canApplyOrderTransition, createIdempotencyFingerprint, createPublicOrderNumber, maskPhone } from "./order-domain";
+import { canApplyOrderTransition, createIdempotencyFingerprint, createOrderPaymentExpiry, createPublicOrderNumber, maskPhone, shouldReleaseCouponReservation } from "./order-domain";
 
 const orderInclude = Prisma.validator<Prisma.OrderInclude>()({
   buyer: { select: { displayName: true } },
@@ -67,13 +67,14 @@ export class OrderService {
           if (money(sku.priceAmount) !== item.unitPrice) throw new ConflictException("ORDER_PRICE_CHANGED");
         }
         const orderId = randomUUID();
+        const orderExpiresAt = createOrderPaymentExpiry();
         await tx.order.create({
           data: {
             id: orderId, orderNumber: createPublicOrderNumber(), userId, quoteId: quote.id,
             idempotencyKey: key, requestHash, status: "PENDING_PAYMENT", currency: quote.currency,
             originalAmount: new Prisma.Decimal(quote.originalAmount), shippingAmount: new Prisma.Decimal(quote.shippingAmount),
             discountAmount: new Prisma.Decimal(quote.discountAmount), payableAmount: new Prisma.Decimal(quote.payableAmount),
-            addressSnapshot: quote.address as unknown as Prisma.InputJsonValue, couponCode: quote.couponCode, expiresAt: row.expiresAt
+            addressSnapshot: quote.address as unknown as Prisma.InputJsonValue, couponCode: quote.couponCode, expiresAt: orderExpiresAt
           }
         });
         for (const group of quote.groups) {
@@ -108,7 +109,7 @@ export class OrderService {
                 onHandAfter: inventory.onHand, reservedAfter: inventory.reserved + snapshot.quantity, reason: "订单创建锁定库存",
                 referenceType: "ORDER_ITEM", referenceId: itemId }
             });
-            await tx.inventoryReservation.create({ data: { inventoryId: inventory.id, referenceId: itemId, quantity: snapshot.quantity, expiresAt: row.expiresAt } });
+            await tx.inventoryReservation.create({ data: { inventoryId: inventory.id, referenceId: itemId, quantity: snapshot.quantity, expiresAt: orderExpiresAt } });
             inventory.reserved += snapshot.quantity;
             inventory.version += 1;
           }
@@ -119,12 +120,11 @@ export class OrderService {
           });
           if (money(redemption.discountAmount) !== quote.discountAmount) throw new ConflictException("ORDER_COUPON_CHANGED");
         }
-        await tx.paymentIntent.create({ data: { orderId, status: "PENDING", provider: "SANDBOX", amount: new Prisma.Decimal(quote.payableAmount), currency: quote.currency, expiresAt: row.expiresAt } });
-        await tx.job.create({data:{type:"CLOSE_EXPIRED_ORDER",uniqueKey:`close-order:${orderId}`,payload:{orderId},runAt:row.expiresAt}});
+        await tx.paymentIntent.create({ data: { orderId, status: "PENDING", provider: "SANDBOX", amount: new Prisma.Decimal(quote.payableAmount), currency: quote.currency, expiresAt: orderExpiresAt } });
+        await tx.job.create({data:{type:"CLOSE_EXPIRED_ORDER",uniqueKey:`close-order:${orderId}`,payload:{orderId},runAt:orderExpiresAt}});
         await tx.orderEvent.create({ data: { orderId, actorId: userId, toStatus: "PENDING_PAYMENT", type: "CREATED" } });
         const consumed = await tx.checkoutQuote.updateMany({ where: { id: quote.id, consumedAt: null }, data: { consumedAt: new Date() } });
         if (!consumed.count) throw new ConflictException("CHECKOUT_QUOTE_CONSUMED");
-        await tx.cartItem.deleteMany({ where: { id: { in: quoteItems.map((item) => item.cartItemId) }, cart: { userId } } });
         const result=this.view(await tx.order.findUniqueOrThrow({ where: { id: orderId }, include: orderInclude }));
         this.metrics.recordCommerce("order_create_success");
         return result;
@@ -200,6 +200,7 @@ export class OrderService {
       if(order.status==="CANCELLED")return this.view(order);
       if(!canApplyOrderTransition(order.status,"CANCELLED"))throw new ConflictException("ORDER_STATUS_CONFLICT");
       await this.releaseReservations(tx,order.id,"买家取消订单");
+      if(shouldReleaseCouponReservation(order.status,"CANCELLED"))await tx.couponRedemption.deleteMany({where:{orderId:id}});
       await tx.paymentIntent.update({where:{orderId:id},data:{status:"CANCELLED",closedAt:new Date()}});
       await tx.merchantOrder.updateMany({where:{orderId:id},data:{status:"CANCELLED"}});
       await tx.order.update({where:{id},data:{status:"CANCELLED",cancelledAt:new Date()}});
