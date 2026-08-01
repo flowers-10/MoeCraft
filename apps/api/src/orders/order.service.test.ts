@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { ConflictException } from "@nestjs/common";
+import { ConflictException, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import type { ConfigService } from "@nestjs/config";
 import type { AppEnvironment } from "../config/environment";
@@ -8,7 +8,7 @@ import type { PrismaService } from "../prisma/prisma.service";
 import type { PromotionService } from "../promotions/promotion.service";
 import { createQuoteSignature } from "../checkout/checkout-domain";
 import { OrderService } from "./order.service";
-import { createIdempotencyFingerprint } from "./order-domain";
+import { createIdempotencyFingerprint, maskPhone } from "./order-domain";
 
 const secret = "s".repeat(32);
 const config = { get: () => secret } as unknown as ConfigService<AppEnvironment, true>;
@@ -123,4 +123,78 @@ test("duplicate submission returns the original order without another transactio
   const result = await new OrderService(prisma, promotions, config).create("customer-1", "same-key", { quoteId, signature });
   assert.equal(result.id, "order-1");
   assert.equal(transactionCalls, 0);
+});
+
+// --- 订单查询数据域：买家端（buyer）与管理端（admin）按入口隔离 ---
+
+function crossStoreOrderRecord() {
+  const dec = (value: number) => new Prisma.Decimal(value);
+  const child = (id: string, merchantId: string, storeId: string, storeName: string) => ({
+    id, orderId: "order-1", merchantId, storeId, status: "PAID", currency: "CNY",
+    originalAmount: dec(10), shippingAmount: dec(0), discountAmount: dec(0), payableAmount: dec(10),
+    merchantNote: null, createdAt: new Date(), store: { name: storeName },
+    items: [{
+      id: `item-${id}`, merchantOrderId: id, storeId, productId: "product-1", skuId: "sku-1",
+      productTitle: "演示手办", skuName: "标准版", coverFileId: null, quantity: 1, currency: "CNY",
+      unitPrice: dec(10), originalAmount: dec(10), discountAmount: dec(0), payableAmount: dec(10)
+    }]
+  });
+  return {
+    id: "order-1", orderNumber: "MC0123456789ABCDEF0123", userId: "customer-a", requestHash: "hash",
+    status: "PAID", currency: "CNY", originalAmount: dec(20), shippingAmount: dec(0),
+    discountAmount: dec(0), payableAmount: dec(20),
+    addressSnapshot: { recipient: "客户A", phone: "13800000000", country: "中国", province: "上海", city: "上海", district: "徐汇", addressLine: "测试路 1 号" },
+    buyer: { displayName: "客户A" },
+    merchantOrders: [child("mo-1", "merchant-1", "store-1", "商家一店"), child("mo-2", "merchant-2", "store-2", "商家二店")],
+    paymentIntent: { id: "pi-1", status: "SUCCEEDED", provider: "SANDBOX", amount: dec(20), currency: "CNY", expiresAt: new Date(Date.now() + 60_000) },
+    createdAt: new Date(), updatedAt: new Date()
+  };
+}
+
+const dualRoleMerchant = { sub: "user-1", roles: ["CUSTOMER", "MERCHANT_OWNER"] as ("CUSTOMER" | "MERCHANT_OWNER")[], merchantId: "merchant-1" };
+const serviceWith = (row: unknown) => new OrderService({ order: { findUnique: async () => row } } as unknown as PrismaService, promotions, config);
+
+test("buyer scope: customer B reading customer A's order gets 404", async () => {
+  const service = serviceWith(crossStoreOrderRecord());
+  await assert.rejects(
+    () => service.get({ sub: "customer-b", roles: ["CUSTOMER"] }, "order-1", "buyer"),
+    (error: unknown) => error instanceof NotFoundException
+  );
+});
+
+test("admin scope: dual-role merchant list is scoped by merchantId, not buyer id", async () => {
+  let seenWhere: Record<string, unknown> | undefined;
+  const prisma = { order: { findMany: async (args: { where: Record<string, unknown> }) => { seenWhere = args.where; return []; } } } as unknown as PrismaService;
+  await new OrderService(prisma, promotions, config).list(dualRoleMerchant, {}, "admin");
+  assert.deepEqual(seenWhere?.merchantOrders, { some: { merchantId: "merchant-1" } });
+  assert.equal(seenWhere?.userId, undefined);
+});
+
+test("admin scope: merchant cannot read an order containing only another merchant's sub-order", async () => {
+  const row = crossStoreOrderRecord();
+  row.merchantOrders = row.merchantOrders.filter((child) => child.merchantId === "merchant-2");
+  const service = serviceWith(row);
+  await assert.rejects(
+    () => service.get(dualRoleMerchant, "order-1", "admin"),
+    (error: unknown) => error instanceof NotFoundException
+  );
+});
+
+test("admin scope: merchant sees only own sub-orders and a masked phone even with a CUSTOMER role", async () => {
+  const view = await serviceWith(crossStoreOrderRecord()).get(dualRoleMerchant, "order-1", "admin");
+  assert.equal(view.merchantOrders.length, 1);
+  assert.equal(view.merchantOrders[0]?.merchantId, "merchant-1");
+  assert.equal(view.address.phone, maskPhone("13800000000"));
+});
+
+test("admin scope: platform operator reads across stores with masked phone", async () => {
+  const view = await serviceWith(crossStoreOrderRecord()).get({ sub: "operator-1", roles: ["PLATFORM_OPERATOR"] }, "order-1", "admin");
+  assert.equal(view.merchantOrders.length, 2);
+  assert.equal(view.address.phone, maskPhone("13800000000"));
+});
+
+test("buyer scope: dual-role user still reads their own purchase with full sub-orders and unmasked phone", async () => {
+  const view = await serviceWith(crossStoreOrderRecord()).get({ ...dualRoleMerchant, sub: "customer-a" }, "order-1", "buyer");
+  assert.equal(view.merchantOrders.length, 2);
+  assert.equal(view.address.phone, "13800000000");
 });

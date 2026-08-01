@@ -19,6 +19,8 @@ const orderInclude = Prisma.validator<Prisma.OrderInclude>()({
 });
 type OrderRecord = Prisma.OrderGetPayload<{ include: typeof orderInclude }>;
 const money = (value: Prisma.Decimal | string | number) => new Prisma.Decimal(value).toFixed(2);
+/** 数据域由入口决定：买家端只看自己下的单；管理端按平台/商家角色限定，避免双角色用户被误判为纯买家。 */
+export type OrderAccessScope = "buyer" | "admin";
 
 @Injectable()
 export class OrderService {
@@ -140,27 +142,26 @@ export class OrderService {
     }
   }
 
-  async list(principal: RequestPrincipal, query: OrderListQueryDto): Promise<OrderListItem[]> {
+  async list(principal: RequestPrincipal, query: OrderListQueryDto, scope: OrderAccessScope): Promise<OrderListItem[]> {
     const where: Prisma.OrderWhereInput = query.status ? { status: query.status } : {};
-    if (principal.roles.includes("CUSTOMER")) where.userId = principal.sub;
-    else if (principal.roles.includes("MERCHANT_OWNER") || principal.roles.includes("MERCHANT_STAFF")) {
-      if (!principal.merchantId) throw new ForbiddenException("MERCHANT_SCOPE_REQUIRED");
-      where.merchantOrders = { some: { merchantId: principal.merchantId } };
-    } else if (!principal.roles.some((role) => role === "PLATFORM_ADMIN" || role === "PLATFORM_OPERATOR")) throw new ForbiddenException("PERMISSION_DENIED");
+    const merchantScope = scope === "buyer" ? null : this.resolveMerchantScope(principal);
+    if (scope === "buyer") where.userId = principal.sub;
+    else if (merchantScope) where.merchantOrders = { some: { merchantId: merchantScope } };
     if (query.search?.trim()) where.orderNumber = { contains: query.search.trim() };
     const rows = await this.prisma.order.findMany({ where, include: orderInclude, orderBy: { createdAt: "desc" }, take: 100 });
     return rows.map((row) => {
-      const value = this.view(row);
+      const value = this.view(row, merchantScope);
       const { address: _address, merchantOrders, ...base } = value;
       return { ...base, storeNames: merchantOrders.map((child) => child.storeName), itemCount: merchantOrders.flatMap((child) => child.items).reduce((sum,item)=>sum+item.quantity,0) };
     });
   }
 
-  async get(principal:RequestPrincipal,id:string):Promise<OrderView>{
+  async get(principal:RequestPrincipal,id:string,scope:OrderAccessScope):Promise<OrderView>{
+    const merchantScope=scope==="admin"?this.resolveMerchantScope(principal):null;
     const row=await this.prisma.order.findUnique({where:{id},include:orderInclude});
-    if(!row||!this.canRead(principal,row))throw new NotFoundException("ORDER_NOT_FOUND");
-    const value=this.view(row);
-    if(!principal.roles.includes("CUSTOMER"))value.address={...value.address,phone:maskPhone(value.address.phone)};
+    if(!row||!this.canRead(principal,row,scope,merchantScope))throw new NotFoundException("ORDER_NOT_FOUND");
+    const value=this.view(row,merchantScope);
+    if(scope==="admin")value.address={...value.address,phone:maskPhone(value.address.phone)};
     return value;
   }
 
@@ -170,7 +171,7 @@ export class OrderService {
     if(!child)throw new NotFoundException("MERCHANT_ORDER_NOT_FOUND");
     await this.prisma.merchantOrder.update({where:{id:merchantOrderId},data:{merchantNote:note.trim()}});
     await this.prisma.auditLog.create({data:{actorId:principal.sub,action:"order.merchant_note.updated",targetType:"MerchantOrder",targetId:merchantOrderId}});
-    return this.get(principal,orderId);
+    return this.get(principal,orderId,"admin");
   }
 
   async createExport(principal:RequestPrincipal,query:OrderListQueryDto):Promise<OrderExportTaskView>{
@@ -184,7 +185,7 @@ export class OrderService {
   private async runExport(id:string,principal:RequestPrincipal,query:OrderListQueryDto){
     try{
       await this.prisma.orderExportTask.update({where:{id},data:{status:"PROCESSING"}});
-      const rows=await this.list(principal,query);
+      const rows=await this.list(principal,query,"admin");
       const escape=(value:string)=>`"${value.replaceAll('"','""')}"`;
       const csv=["orderNumber,status,stores,itemCount,amount,currency,createdAt",...rows.map((row)=>[row.orderNumber,row.status,row.storeNames.join(" / "),String(row.itemCount),row.payableAmount,row.currency,row.createdAt].map(escape).join(","))].join("\r\n");
       await this.prisma.orderExportTask.update({where:{id},data:{status:"COMPLETED",downloadName:`orders-${id}.csv`,resultCsv:csv,completedAt:new Date()}});
@@ -233,19 +234,30 @@ export class OrderService {
     }
   }
 
-  private canRead(principal:RequestPrincipal,order:OrderRecord){
-    if(principal.roles.includes("CUSTOMER"))return order.userId===principal.sub;
-    if(principal.roles.some((role)=>role==="PLATFORM_ADMIN"||role==="PLATFORM_OPERATOR"))return true;
-    return Boolean(principal.merchantId&&order.merchantOrders.some((child)=>child.merchantId===principal.merchantId));
+  /** 管理端数据域：平台角色返回 null（全量）；商家角色返回其 merchantId；其余拒绝。 */
+  private resolveMerchantScope(principal:RequestPrincipal):string|null{
+    if(principal.roles.some((role)=>role==="PLATFORM_ADMIN"||role==="PLATFORM_OPERATOR"))return null;
+    if(principal.roles.some((role)=>role==="MERCHANT_OWNER"||role==="MERCHANT_STAFF")){
+      if(!principal.merchantId)throw new ForbiddenException("MERCHANT_SCOPE_REQUIRED");
+      return principal.merchantId;
+    }
+    throw new ForbiddenException("PERMISSION_DENIED");
   }
 
-  private view(order:OrderRecord):OrderView{
+  private canRead(principal:RequestPrincipal,order:OrderRecord,scope:OrderAccessScope,merchantScope:string|null){
+    if(scope==="buyer")return order.userId===principal.sub;
+    if(merchantScope)return order.merchantOrders.some((child)=>child.merchantId===merchantScope);
+    return true;
+  }
+
+  private view(order:OrderRecord,merchantScope?:string|null):OrderView{
     const address=order.addressSnapshot as unknown as OrderView["address"];
+    const children=merchantScope?order.merchantOrders.filter((child)=>child.merchantId===merchantScope):order.merchantOrders;
     return {
       id:order.id,orderNumber:order.orderNumber,userId:order.userId,buyerDisplayName:order.buyer.displayName,buyerMaskedPhone:maskPhone(address.phone),
       status:order.status as OrderStatus,currency:order.currency,originalAmount:money(order.originalAmount),shippingAmount:money(order.shippingAmount),
       discountAmount:money(order.discountAmount),payableAmount:money(order.payableAmount),address,
-      merchantOrders:order.merchantOrders.map((child)=>({id:child.id,merchantId:child.merchantId,storeId:child.storeId,storeName:child.store.name,status:child.status as OrderStatus,
+      merchantOrders:children.map((child)=>({id:child.id,merchantId:child.merchantId,storeId:child.storeId,storeName:child.store.name,status:child.status as OrderStatus,
         originalAmount:money(child.originalAmount),shippingAmount:money(child.shippingAmount),discountAmount:money(child.discountAmount),payableAmount:money(child.payableAmount),merchantNote:child.merchantNote,
         items:child.items.map((item)=>({id:item.id,merchantOrderId:item.merchantOrderId,storeId:item.storeId,skuId:item.skuId,productId:item.productId,productTitle:item.productTitle,
           skuName:item.skuName,coverFileId:item.coverFileId,quantity:item.quantity,currency:item.currency,unitPrice:money(item.unitPrice),originalAmount:money(item.originalAmount),
