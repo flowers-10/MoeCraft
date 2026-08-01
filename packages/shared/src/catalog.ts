@@ -42,7 +42,7 @@ export type PublicProductCard = {
 };
 export type PublicProductSearchResult = { items: PublicProductCard[]; total: number; page: number; pageSize: number; totalPages: number };
 export type PublicProductMedia = { id: string; fileId: string; kind: "IMAGE" | "VIDEO"; altZhCn: string | null; altEnUs: string | null; isCover: boolean };
-export type PublicProductSku = { id: string; code: string; nameZhCn: string; nameEnUs: string | null; optionValues: Record<string, string>; priceAmount: number; currency: string; available: number; inStock: boolean };
+export type PublicProductSku = { id: string; code: string; nameZhCn: string; nameEnUs: string | null; imageFileId: string | null; optionValues: Record<string, string>; priceAmount: number; currency: string; available: number; inStock: boolean };
 export type PublicStoreSummary = { id: string; name: string; slug: string; logoFileId: string | null; description: string | null; customerServiceEmail: string | null; customerServicePhone: string | null };
 export type PublicProductDetail = {
   id: string;

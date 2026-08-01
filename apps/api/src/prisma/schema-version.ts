@@ -1,1 +1,1 @@
-export const REQUIRED_DATABASE_MIGRATION = "20260730130000_g25_jobs";
+export const REQUIRED_DATABASE_MIGRATION = "20260801150000_product_rich_content_sku_images";

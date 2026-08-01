@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
-import { UiBadge, UiButton, UiCard, UiEmptyState, UiField, UiInput, UiList, UiPageContainer, UiPageHeader, UiSelect, UiSplitLayout, UiTable, UiTextarea } from "../../src";
+import { UiBadge, UiButton, UiCard, UiDialog, UiEmptyState, UiField, UiInput, UiList, UiPageContainer, UiPageHeader, UiRichTextEditor, UiSearchField, UiSelect, UiSplitLayout, UiTable, UiTextarea } from "../../src";
 import { componentDocs, tokens, type ComponentDoc } from "./catalog";
 
 const query=ref("");const dark=ref(localStorage.getItem("mc-ui-doc-theme")==="dark");const menuOpen=ref(false);const copied=ref("");
 const activeTabs=reactive<Record<string,"props"|"slots"|"events"|"usage">>({});
 const form=reactive({name:"Moe Atelier",description:"专注原创手办与限定周边。",status:"OPEN"});
+const richText=ref("<h2>商品故事</h2><p>支持 <strong>加粗</strong>、列表和快捷键。</p>");const searchDemo=ref("");const dialogOpen=ref(false);
 const members=[{id:"1",name:"Acceptance User",role:"OWNER"},{id:"2",name:"Moe Staff",role:"STAFF"}];
 const columns=[{key:"name",label:"成员"},{key:"role",label:"角色"}];
 const groups=computed(()=>[...new Set(componentDocs.map(item=>item.group))]);
@@ -29,6 +30,9 @@ if(dark.value)document.documentElement.dataset.theme="dark";
       <UiTextarea v-else-if="doc.name==='UiTextarea'" v-model="form.description" rows="3" style="max-width:420px"/>
       <UiSelect v-else-if="doc.name==='UiSelect'" v-model="form.status" style="max-width:260px"><option value="OPEN">营业中</option><option value="CLOSED">暂停营业</option></UiSelect>
       <UiField v-else-if="doc.name==='UiField'" label="客服邮箱" hint="用于接收买家咨询" required style="width:340px"><UiInput model-value="hello@moecraft.test"/></UiField>
+      <UiSearchField v-else-if="doc.name==='UiSearchField'" v-model="searchDemo" placeholder="搜索订单号" search-label="查询" style="width:420px"/>
+      <UiRichTextEditor v-else-if="doc.name==='UiRichTextEditor'" v-model="richText" placeholder="输入图文描述…" style="width:100%;max-width:680px"/>
+      <template v-else-if="doc.name==='UiDialog'"><UiButton @click="dialogOpen=true">打开弹框</UiButton><UiDialog v-model="dialogOpen" label="快捷键示例"><div style="padding:24px"><h3>按 Esc 关闭</h3><p>Tab 会在弹框内循环，关闭后焦点回到触发按钮。</p><UiButton @click="dialogOpen=false">完成</UiButton></div></UiDialog></template>
       <UiCard v-else-if="doc.name==='UiCard'" title="店铺资料" subtitle="维护公开展示的信息" style="width:380px"><UiBadge tone="success">已保存</UiBadge></UiCard>
       <UiList v-else-if="doc.name==='UiList'" :items="members" :key-by="item=>item.id" style="width:360px"><template #default="{item}"><b>{{item.name}}</b> · {{item.role}}</template></UiList>
       <UiTable v-else-if="doc.name==='UiTable'" :columns="columns" :rows="members" style="width:520px"/>

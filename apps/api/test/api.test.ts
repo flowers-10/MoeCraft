@@ -419,6 +419,8 @@ test("file downloads keep private uploads protected and expose only published me
     fileAsset: { findFirst: async () => ({ id: "file-1", ownerId: "owner-1", objectKey: "private/owner-1/file-1", mimeType: "image/png", sizeBytes: 5 }) },
     merchantMember: { count: async () => 0 },
     productMedia: { count: async () => 0 },
+    sku: { count: async () => 0 },
+    productDescriptionAsset: { count: async () => 0 },
     store: { count: async () => 0 }
   } as unknown as PrismaService;
   const storage = { stream: async () => { throw new Error("private object must not be read"); } } as unknown as LocalObjectStorageService;

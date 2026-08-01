@@ -78,8 +78,7 @@ onMounted(state.load);
         </template>
       </UiTable>
     </section>
-    <Teleport to="body">
-      <ProductDraftDrawer
+    <ProductDraftDrawer
         v-if="state.drawerOpen.value"
         :model-value="state.form"
         :catalog="state.catalog.value"
@@ -90,7 +89,6 @@ onMounted(state.load);
         @save="state.save"
         @close="state.drawerOpen.value = false"
       />
-    </Teleport>
   </UiPageContainer>
 </template>
 

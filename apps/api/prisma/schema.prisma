@@ -465,6 +465,7 @@ model Product {
   tags       Tag[]
   skus       Sku[]
   media      ProductMedia[]
+  descriptionAssets ProductDescriptionAsset[]
   reviewEvents ProductReviewEvent[]
   couponScopes CouponProduct[]
   createdAt  DateTime      @default(now())
@@ -760,6 +761,7 @@ model Sku {
   nameZhCn    String     @db.VarChar(160)
   nameEnUs    String?    @db.VarChar(160)
   barcode     String?    @db.VarChar(80)
+  imageFileId String?
   optionValues Json?
   weightGrams Int?
   lengthMm    Int?
@@ -777,6 +779,17 @@ model Sku {
 
   @@index([productId])
   @@index([barcode])
+}
+
+model ProductDescriptionAsset {
+  id        String   @id @default(cuid())
+  productId String
+  fileId    String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([productId, fileId])
+  @@index([fileId])
 }
 
 model Cart {

@@ -60,11 +60,13 @@ export class FilesService {
   async publicDownload(id: string): Promise<StreamableFile> {
     const asset = await this.prisma.fileAsset.findFirst({ where: { id, status: "READY" } });
     if (!asset) throw new NotFoundException("FILE_NOT_FOUND");
-    const [productUsage, storeUsage] = await Promise.all([
+    const [productUsage, skuUsage, descriptionUsage, storeUsage] = await Promise.all([
       this.prisma.productMedia.count({ where: { fileId: id, kind: "IMAGE", product: { status: "ACTIVE", store: { isOpen: true, merchant: { status: "ACTIVE" } } } } }),
+      this.prisma.sku.count({ where: { imageFileId: id, isActive: true, product: { status: "ACTIVE", store: { isOpen: true, merchant: { status: "ACTIVE" } } } } }),
+      this.prisma.productDescriptionAsset.count({ where: { fileId: id, product: { status: "ACTIVE", store: { isOpen: true, merchant: { status: "ACTIVE" } } } } }),
       this.prisma.store.count({ where: { isOpen: true, merchant: { status: "ACTIVE" }, OR: [{ logoFileId: id }, { bannerFileId: id }] } })
     ]);
-    if (!productUsage && !storeUsage) throw new NotFoundException("PUBLIC_FILE_NOT_FOUND");
+    if (!productUsage && !skuUsage && !descriptionUsage && !storeUsage) throw new NotFoundException("PUBLIC_FILE_NOT_FOUND");
     return this.stream(asset);
   }
 

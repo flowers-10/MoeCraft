@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import type { AdminButtonPermission, OrderStatus } from "@moecraft/shared";
-import { UiBadge, UiButton, UiTable, type UiTableColumn } from "@moecraft/ui";
+import { UiBadge, UiButton, UiSearchField, UiTable, type UiTableColumn } from "@moecraft/ui";
 import { useOrderManagement } from "../composables/useOrderManagement";
 const props=withDefaults(defineProps<{buttonPermissions?:AdminButtonPermission[]}>(),{buttonPermissions:()=>[]});
 const state=useOrderManagement(),note=ref("");
@@ -13,7 +13,7 @@ async function save(){const child=state.selected.value?.merchantOrders[0];if(chi
 const tone=(status:string)=>status==="SUCCEEDED"||status==="COMPLETED"?"success":status==="FAILED"||status==="CANCELLED"?"danger":"warning";
 onMounted(state.load);
 </script>
-<template><section class="orders"><div class="filters"><input v-model="state.search.value" placeholder="搜索订单号"><select v-model="state.status.value"><option v-for="item in statuses" :key="item.value" :value="item.value">{{item.label}}</option></select><UiButton variant="secondary" @click="state.load">查询</UiButton><UiButton variant="secondary" :disabled="state.busy.value" @click="state.createExport">异步导出 CSV</UiButton></div>
+<template><section class="orders"><div class="filters"><UiSearchField v-model="state.search.value" placeholder="搜索订单号" search-label="查询" @search="state.load"/><select v-model="state.status.value"><option v-for="item in statuses" :key="item.value" :value="item.value">{{item.label}}</option></select><UiButton variant="secondary" :disabled="state.busy.value" @click="state.createExport">异步导出 CSV</UiButton></div>
 <p v-if="state.error.value" class="notice">{{state.error.value}}</p><div v-if="state.loading.value" class="loading">正在加载订单…</div><UiTable v-else :columns="columns" :rows="state.orders.value.map(row=>({...row,paymentStatus:row.payment.status,order:row.id,buyer:row.id,stores:row.id,amount:row.id,actions:row.id}))" empty-text="没有符合条件的订单">
 <template #cell-order="{row}"><b>{{row.orderNumber}}</b><small>{{new Date(String(row.createdAt)).toLocaleString()}}</small></template>
 <template #cell-buyer="{row}"><span>{{row.buyerDisplayName}}</span><small>{{row.buyerMaskedPhone}}</small></template><template #cell-stores="{row}">{{Array.isArray(row.storeNames)?row.storeNames.join(" / "):""}}</template>
@@ -22,3 +22,4 @@ onMounted(state.load);
 <style scoped lang="less">
 .orders{padding:20px;border:1px solid var(--border);border-radius:8px;background:var(--surface)}.filters{display:flex;gap:10px;margin-bottom:16px}.filters input,.filters select{padding:9px 11px;border:1px solid var(--border);border-radius:8px;background:var(--surface-raised);color:var(--text)}.filters input{flex:1}.notice{padding:10px;border-radius:8px;background:var(--accent-soft);color:var(--accent)}td b,td small{display:block}td small{margin-top:4px;color:var(--text-muted)}.loading{padding:50px;text-align:center}.overlay{position:fixed;z-index:50;inset:0;display:grid;justify-content:end;background:#0006}.overlay aside{width:min(94vw,620px);height:100vh;overflow:auto;padding:28px;background:var(--surface);box-shadow:var(--shadow)}.overlay header{display:flex;justify-content:space-between}.overlay header button{border:0;background:none;color:var(--text);font-size:28px}.overlay dl{display:grid;grid-template-columns:100px 1fr;gap:9px}.overlay dd{margin:0;color:var(--text)}.overlay section{padding:14px 0;border-top:1px solid var(--border)}.overlay section p{display:flex;justify-content:space-between}.overlay label{display:grid;gap:7px}.overlay textarea{min-height:100px;padding:10px}.readonly{color:var(--text-muted);font-size:11px}@media(max-width:700px){.filters{flex-direction:column}}
 </style>
+<style scoped>.filters :deep(.mc-search){flex:1}</style>

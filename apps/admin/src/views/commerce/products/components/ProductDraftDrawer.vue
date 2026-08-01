@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { UiButton, UiField, UiFileUpload, UiForm, UiFormSection, UiInput, UiSelect, UiTextarea, type UiFormRules } from "@moecraft/ui";
+import { UiButton, UiDialog, UiField, UiFileUpload, UiForm, UiFormSection, UiInput, UiRichTextEditor, UiSelect, UiTextarea, type UiFormRules, type UiRichTextImage } from "@moecraft/ui";
 import type { CatalogOverview, ProductDraftInput, ProductReviewEventView, ProductStatus } from "@moecraft/shared";
-import { uploadFile } from "../../../../api";
+import { downloadFileBlob, uploadFile } from "../../../../api";
 import { useFilePreview } from "../../../../composables/useFilePreview";
 import { useLocale } from "../../../../i18n";
 import { productStatusKeys } from "../productI18n";
@@ -12,12 +12,17 @@ const emit = defineEmits<{ close: []; save: [] }>();
 const { locale, t } = useLocale();
 const uploadingIndex = ref<number | null>(null);
 const uploadErrors = ref<Record<number, string>>({});
+const skuUploadingIndex = ref<number | null>(null);
+const skuUploadErrors = ref<Record<number, string>>({});
 const validationError = ref("");
 const characters = computed(() => props.catalog?.characters.filter(item => !props.modelValue.franchiseId || item.franchiseId === props.modelValue.franchiseId) ?? []);
 const previews = useFilePreview();
 
 props.modelValue.media.forEach((media) => {
   if (media.fileId) void previews.showFileId(media, media.fileId);
+});
+props.modelValue.skus.forEach((sku) => {
+  if (sku.imageFileId) void previews.showFileId(sku, sku.imageFileId);
 });
 
 function catalogName(item: { nameZhCn: string; nameEnUs: string | null }) { return locale.value === "en-US" ? item.nameEnUs || item.nameZhCn : item.nameZhCn || item.nameEnUs || ""; }
@@ -81,10 +86,49 @@ async function registerFile(index: number, file: File) {
     uploadingIndex.value = null;
   }
 }
+async function registerSkuFile(index: number, file: File) {
+  const sku = props.modelValue.skus[index];
+  if (!sku) return;
+  const previousFileId = sku.imageFileId;
+  skuUploadingIndex.value = index;
+  delete skuUploadErrors.value[index];
+  previews.showFile(sku, file);
+  try {
+    const asset = await uploadFile<{ id: string }>("product-media", file);
+    sku.imageFileId = asset.id;
+  } catch {
+    sku.imageFileId = previousFileId;
+    if (previousFileId) void previews.showFileId(sku, previousFileId);
+    else previews.clearPreview(sku);
+    skuUploadErrors.value[index] = t("products.error.skuImageUpload");
+  } finally {
+    skuUploadingIndex.value = null;
+  }
+}
+function clearSkuFile(index: number) {
+  const sku = props.modelValue.skus[index];
+  if (!sku) return;
+  sku.imageFileId = undefined;
+  previews.clearPreview(sku);
+  delete skuUploadErrors.value[index];
+}
+async function uploadRichTextImage(file: File): Promise<UiRichTextImage> {
+  const src = URL.createObjectURL(file);
+  try {
+    const asset = await uploadFile<{ id: string }>("product-media", file);
+    return { src, fileId: asset.id, alt: file.name.replace(/\.[^.]+$/, "") };
+  } catch (error) {
+    URL.revokeObjectURL(src);
+    throw error;
+  }
+}
+async function resolveRichTextImage(fileId: string) {
+  return URL.createObjectURL(await downloadFileBlob(fileId));
+}
 </script>
 
 <template>
-  <div class="mask" @mousedown.self="emit('close')">
+  <UiDialog :model-value="true" :label="editing ? t('products.drawerEditTitle') : t('products.drawerNewTitle')" placement="right" width="min(940px, 100vw)" @close="emit('close')">
     <UiForm class="drawer" :model="modelValue" :rules="formRules" validate-on="blur" @submit="formSubmitted" @invalid="formInvalid">
       <header class="drawer-header">
         <div>
@@ -134,7 +178,9 @@ async function registerFile(index: number, file: File) {
                 <UiField :label="t('products.shippingWindowStart')" required><UiInput v-model="modelValue.shippingWindowStart" type="date" /></UiField>
                 <UiField :label="t('products.shippingWindowEnd')" required><UiInput v-model="modelValue.shippingWindowEnd" type="date" /></UiField>
               </template>
-              <UiField name="descriptionZhCn" class="wide" :label="t('products.descriptionZhCn')" required><UiTextarea v-model="modelValue.descriptionZhCn" rows="4" /></UiField>
+              <UiField name="descriptionZhCn" class="wide" :label="t('products.descriptionZhCn')" required>
+                <UiRichTextEditor v-model="modelValue.descriptionZhCn" :placeholder="t('products.richTextPlaceholder')" :upload-image="uploadRichTextImage" :resolve-image="resolveRichTextImage" :image-label="t('products.richTextImage')" @upload-error="validationError=t('products.error.richTextImageUpload')" />
+              </UiField>
               <UiField class="wide" :label="t('products.descriptionEnUs')"><UiTextarea v-model="modelValue.descriptionEnUs" rows="3" /></UiField>
             </div>
           </UiFormSection>
@@ -156,6 +202,10 @@ async function registerFile(index: number, file: File) {
                   <UiField :label="t('products.initialStock')"><UiInput v-model="sku.initialStock" type="number" min="0" /></UiField>
                   <UiField :label="t('products.weightGrams')"><UiInput v-model="sku.weightGrams" type="number" min="0" /></UiField>
                   <UiField :label="t('products.dimensionsMm')"><div class="dimensions"><UiInput v-model="sku.lengthMm" type="number" min="0" :placeholder="t('products.length')" /><UiInput v-model="sku.widthMm" type="number" min="0" :placeholder="t('products.width')" /><UiInput v-model="sku.heightMm" type="number" min="0" :placeholder="t('products.height')" /></div></UiField>
+                  <UiField class="wide sku-image-field" :label="t('products.skuImage')" :hint="t('products.skuImageHint')">
+                    <div v-if="previews.previewUrl(sku)" class="sku-image-preview"><img :src="previews.previewUrl(sku)" :alt="sku.nameZhCn || t('products.skuImage')"></div>
+                    <UiFileUpload accept="image/jpeg,image/png,image/webp" :current-name="sku.imageFileId" :placeholder="t('products.fileIdPlaceholder')" :busy="skuUploadingIndex===index" :disabled="!editable" :error="skuUploadErrors[index]" :browse-label="t('products.browse')" :drop-hint="t('products.uploadDropHint')" :uploading-label="t('products.uploading')" :uploading-hint="t('products.uploadingHint')" :clear-label="t('products.clearFile')" @select="registerSkuFile(index,$event)" @clear="clearSkuFile(index)" />
+                  </UiField>
                 </div>
               </article>
             </div>
@@ -209,12 +259,11 @@ async function registerFile(index: number, file: File) {
         <UiButton v-if="editable" type="submit" :loading="busy">{{ t('products.saveDraft') }}</UiButton>
       </footer>
     </UiForm>
-  </div>
+  </UiDialog>
 </template>
 
 <style scoped lang="less">
-.mask{position:fixed;z-index:110;inset:0;display:flex;justify-content:flex-end;background:rgb(23 20 35 / 58%);backdrop-filter:blur(2px)}
-.drawer{display:flex;width:min(940px,100vw);height:100%;flex-direction:column;background:var(--app-bg,#f5f6fb);color:var(--text);box-shadow:-18px 0 52px rgb(28 31 48 / 18%)}
+.drawer{display:flex;width:100%;height:100%;flex-direction:column;background:var(--app-bg,#f5f6fb);color:var(--text);box-shadow:-18px 0 52px rgb(28 31 48 / 18%)}
 .drawer-header{display:flex;flex:0 0 auto;align-items:flex-start;justify-content:space-between;padding:22px 26px;border-bottom:1px solid var(--border);background:var(--surface)}
 .drawer-header small{color:var(--accent);font-size:9px;font-weight:750;letter-spacing:.14em}.drawer-header h2{margin:6px 0 2px;font-size:22px;letter-spacing:0}.drawer-header p{margin:0;color:var(--text-muted);font-size:10px}
 .scroll{display:grid;flex:1;gap:16px;overflow:auto;padding:20px 24px 32px;overscroll-behavior:contain}
@@ -225,6 +274,7 @@ fieldset{display:grid;gap:16px;padding:0;margin:0;border:0}fieldset:disabled{opa
 .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px 16px}.form-grid.compact{align-items:start;padding:16px}.wide{grid-column:1/-1}.dimensions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
 .repeat-list{display:grid;gap:12px}.repeat-card{overflow:hidden;border:1px solid var(--border);border-radius:11px;background:color-mix(in srgb,var(--surface-raised) 58%,var(--surface));box-shadow:0 3px 10px rgb(31 45 74 / 4%)}
 .repeat-header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 14px;border-bottom:1px solid var(--border);background:var(--surface)}.repeat-header>div{display:flex;align-items:center;gap:9px}.repeat-header span{display:grid;width:26px;height:26px;place-items:center;border-radius:7px;background:var(--accent-soft);color:var(--accent);font-size:9px;font-weight:750}.repeat-header b{font-size:12px}
+.sku-image-field{padding-top:2px}.sku-image-preview{display:grid;width:150px;height:150px;place-items:center;overflow:hidden;margin-bottom:10px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}.sku-image-preview img{width:100%;height:100%;object-fit:contain}
 .media-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(130px,.7fr) minmax(0,1fr) 100px;gap:14px;padding:16px}.upload-field{grid-row:span 2}.media-preview{display:grid;width:100%;height:180px;place-items:center;overflow:hidden;margin-bottom:10px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}.media-preview img{width:100%;height:100%;object-fit:contain}.preview-error{padding:10px 12px;margin:0 0 10px;border-radius:9px;background:var(--danger-soft);color:var(--danger);font-size:10px}.media-actions{display:flex;justify-content:flex-end;padding:0 16px 16px}
 .drawer-footer{display:flex;flex:0 0 auto;align-items:center;justify-content:flex-end;gap:10px;padding:14px 24px;border-top:1px solid var(--border);background:var(--surface);box-shadow:0 -8px 22px rgb(31 45 74 / 6%)}.drawer-footer>span{margin-right:auto;color:var(--text-muted);font-size:10px}
 @media(max-width:760px){.drawer{width:100vw}.scroll{padding:16px}.form-grid,.media-grid{grid-template-columns:1fr}.wide,.upload-field{grid-column:auto;grid-row:auto}.drawer-footer>span{display:none}}

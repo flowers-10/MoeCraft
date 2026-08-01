@@ -94,7 +94,7 @@ export class CatalogService {
       tags: item.tags.map((tag) => this.catalogReference(tag)!),
       store: { id: item.store.id, name: item.store.name, slug: item.store.slug, logoFileId: item.store.logoFileId, description: item.store.description, customerServiceEmail: item.store.customerServiceEmail, customerServicePhone: item.store.customerServicePhone },
       media: item.media.map((media) => ({ id: media.id, fileId: media.fileId, kind: media.kind as "IMAGE" | "VIDEO", altZhCn: media.altZhCn, altEnUs: media.altEnUs, isCover: media.isCover })),
-      skus: item.skus.map((sku) => { const available = Math.max(0, (sku.inventory?.onHand ?? 0) - (sku.inventory?.reserved ?? 0)); return { id: sku.id, code: sku.code, nameZhCn: sku.nameZhCn, nameEnUs: sku.nameEnUs, optionValues: this.stringRecord(sku.optionValues), priceAmount: toYuan(sku.priceAmount), currency: sku.currency, available, inStock: available > 0 }; }),
+      skus: item.skus.map((sku) => { const available = Math.max(0, (sku.inventory?.onHand ?? 0) - (sku.inventory?.reserved ?? 0)); return { id: sku.id, code: sku.code, nameZhCn: sku.nameZhCn, nameEnUs: sku.nameEnUs, imageFileId: sku.imageFileId, optionValues: this.stringRecord(sku.optionValues), priceAmount: toYuan(sku.priceAmount), currency: sku.currency, available, inStock: available > 0 }; }),
       salesCount: item.salesCount, createdAt: item.createdAt.toISOString(), updatedAt: item.updatedAt.toISOString()
     };
   }

@@ -16,8 +16,23 @@ watch(selectedSkuId, () => { qty.value = 1; });
 const selectedSku = computed(() => product.value?.skus.find((sku) => sku.id === selectedSkuId.value) ?? product.value?.skus[0]);
 const selectedMedia = computed(() => product.value?.media.find((media) => media.id === selectedMediaId.value));
 const images = computed(() => product.value?.media.filter((media) => media.kind === "IMAGE") ?? []);
+const primaryImage = computed(() => selectedSku.value?.imageFileId
+  ? { fileId: selectedSku.value.imageFileId, alt: selectedSku.value.nameZhCn }
+  : selectedMedia.value ? { fileId: selectedMedia.value.fileId, alt: selectedMedia.value.altZhCn || product.value?.titleZhCn || "" } : null);
+const descriptionHtml = computed(() => renderRichText(product.value?.descriptionZhCn));
+const descriptionText = computed(() => plainText(product.value?.descriptionZhCn));
 const maxQty = computed(() => Math.min(99, selectedSku.value?.available ?? 0));
 function date(value: string | null) { return value ? new Intl.DateTimeFormat("zh-CN", { dateStyle: "long" }).format(new Date(value)) : "待商家确认"; }
+function renderRichText(html: string | null | undefined) {
+  if (!html) return "";
+  return html.replace(/<img\b[^>]*>/g, (tag) => {
+    const fileId = tag.match(/\sdata-file-id="([A-Za-z0-9_-]+)"/)?.[1];
+    if (!fileId) return "";
+    const src = mediaUrl(fileId).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+    return /\ssrc="[^"]*"/.test(tag) ? tag.replace(/\ssrc="[^"]*"/, ` src="${src}"`) : tag.replace("<img", `<img src="${src}"`);
+  });
+}
+function plainText(html: string | null | undefined) { return (html ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(); }
 
 async function handleAdd() {
   if (!selectedSku.value || !selectedSku.value.inStock || adding.value) return;
@@ -32,8 +47,8 @@ async function handleAdd() {
     adding.value = false;
   }
 }
-useSeoMeta({ title: () => product.value ? `${product.value.titleZhCn} - MoeCraft` : "商品详情 - MoeCraft", description: () => product.value?.descriptionZhCn?.slice(0, 150) ?? "MoeCraft 手办商品详情", ogTitle: () => product.value?.titleZhCn, ogDescription: () => product.value?.descriptionZhCn ?? undefined, ogImage: () => images.value[0] ? mediaUrl(images.value[0].fileId) : undefined });
-useHead(() => product.value ? { script: [{ type: "application/ld+json", textContent: JSON.stringify({ "@context": "https://schema.org", "@type": "Product", name: product.value.titleZhCn, description: product.value.descriptionZhCn, image: images.value.map((item) => mediaUrl(item.fileId)), brand: product.value.brand ? { "@type": "Brand", name: product.value.brand.nameZhCn } : undefined, sku: selectedSku.value?.code, offers: selectedSku.value ? { "@type": "Offer", priceCurrency: selectedSku.value.currency, price: selectedSku.value.priceAmount, availability: selectedSku.value.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock", seller: { "@type": "Organization", name: product.value.store.name } } : undefined }) }] } : {});
+useSeoMeta({ title: () => product.value ? `${product.value.titleZhCn} - MoeCraft` : "商品详情 - MoeCraft", description: () => descriptionText.value.slice(0, 150) || "MoeCraft 手办商品详情", ogTitle: () => product.value?.titleZhCn, ogDescription: () => descriptionText.value || undefined, ogImage: () => primaryImage.value ? mediaUrl(primaryImage.value.fileId) : undefined });
+useHead(() => product.value ? { script: [{ type: "application/ld+json", textContent: JSON.stringify({ "@context": "https://schema.org", "@type": "Product", name: product.value.titleZhCn, description: descriptionText.value, image: [...images.value.map((item) => mediaUrl(item.fileId)), ...product.value.skus.flatMap((sku) => sku.imageFileId ? [mediaUrl(sku.imageFileId)] : [])], brand: product.value.brand ? { "@type": "Brand", name: product.value.brand.nameZhCn } : undefined, sku: selectedSku.value?.code, offers: selectedSku.value ? { "@type": "Offer", priceCurrency: selectedSku.value.currency, price: selectedSku.value.priceAmount, availability: selectedSku.value.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock", seller: { "@type": "Organization", name: product.value.store.name } } : undefined }) }] } : {});
 </script>
 
 <template>
@@ -45,7 +60,7 @@ useHead(() => product.value ? { script: [{ type: "application/ld+json", textCont
       <nav class="crumb"><NuxtLink to="/catalog">商品目录</NuxtLink><span>/</span><NuxtLink v-if="product.category" :to="`/categories/${product.category.slug}`">{{ product.category.nameZhCn }}</NuxtLink><span>/</span><b>{{ product.titleZhCn }}</b></nav>
       <section class="product-main">
         <div class="gallery">
-          <div class="primary"><img v-if="selectedMedia" :src="mediaUrl(selectedMedia.fileId)" :alt="selectedMedia.altZhCn || product.titleZhCn"><div v-else class="fallback"><b>M</b><span>MOECRAFT</span></div></div>
+          <div class="primary"><img v-if="primaryImage" :src="mediaUrl(primaryImage.fileId)" :alt="primaryImage.alt"><div v-else class="fallback"><b>M</b><span>MOECRAFT</span></div></div>
           <div v-if="images.length > 1" class="thumbs"><button v-for="image in images" :key="image.id" type="button" :class="{ active: image.id === selectedMediaId }" :aria-label="image.altZhCn || product.titleZhCn" @click="selectedMediaId = image.id"><img :src="mediaUrl(image.fileId)" :alt="image.altZhCn || ''"></button></div>
         </div>
         <div class="summary">
@@ -67,7 +82,7 @@ useHead(() => product.value ? { script: [{ type: "application/ld+json", textCont
         </div>
       </section>
       <section class="details">
-        <article><small>PRODUCT STORY</small><h2>商品介绍</h2><p>{{ product.descriptionZhCn || '商家暂未补充商品介绍。' }}</p><p v-if="product.descriptionEnUs" class="secondary">{{ product.descriptionEnUs }}</p></article>
+        <article><small>PRODUCT STORY</small><h2>商品介绍</h2><div v-if="descriptionHtml" class="rich-description" v-html="descriptionHtml" /><p v-else>商家暂未补充商品介绍。</p><p v-if="product.descriptionEnUs" class="secondary">{{ product.descriptionEnUs }}</p></article>
         <aside><div><b>商品信息</b><dl><template v-if="product.material"><dt>材质</dt><dd>{{ product.material }}</dd></template><template v-if="product.scale"><dt>比例</dt><dd>{{ product.scale }}</dd></template><template v-if="product.manufacturer"><dt>厂商</dt><dd>{{ product.manufacturer }}</dd></template><template v-if="product.character"><dt>角色</dt><dd>{{ product.character.nameZhCn }}</dd></template></dl></div><div><b>正版与版权</b><p>{{ product.copyrightNotice || '版权与授权信息由商家提交并经平台审核。' }}</p></div><div><b>售后服务</b><p>{{ product.afterSalesSummary || '签收后如发现商品问题，请保留完整包装并联系店铺客服。' }}</p><a v-if="product.store.customerServiceEmail" :href="`mailto:${product.store.customerServiceEmail}`">{{ product.store.customerServiceEmail }}</a></div></aside>
       </section>
     </main>
@@ -77,4 +92,13 @@ useHead(() => product.value ? { script: [{ type: "application/ld+json", textCont
 
 <style scoped>
 :global(body){margin:0;background:#f7f8fa;color:#252832;font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif}.product-page{min-height:100vh}.product-page>main{max-width:1192px;padding:20px 24px 75px;margin:auto}.crumb{display:flex;gap:8px;overflow:hidden;padding:10px 0 20px;color:#9398a4;font-size:10px;white-space:nowrap}.crumb a{color:#69707e;text-decoration:none}.crumb b{overflow:hidden;color:#9398a4;font-weight:400;text-overflow:ellipsis}.product-main{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(360px,.92fr);gap:42px}.primary{display:grid;aspect-ratio:1/1;place-items:center;overflow:hidden;background:#eef0f3}.primary img{width:100%;height:100%;object-fit:contain}.fallback{display:grid;place-items:center;color:#737a88}.fallback b{display:grid;width:110px;height:110px;place-items:center;border-radius:50%;background:#d94d6f;color:#fff;font-size:44px}.fallback span{margin-top:15px;font-size:9px}.thumbs{display:flex;gap:8px;padding-top:10px;overflow:auto}.thumbs button{width:70px;height:70px;flex:0 0 auto;padding:3px;border:1px solid #dfe2e8;border-radius:5px;background:#fff;cursor:pointer}.thumbs button.active{border-color:#d94d6f}.thumbs img{width:100%;height:100%;object-fit:contain}.summary{padding-top:12px}.taxonomy{display:flex;align-items:center;justify-content:space-between}.taxonomy a{color:#d14b6b;font-size:10px;font-weight:700;text-decoration:none}.taxonomy span{padding:5px 8px;border-radius:5px;background:#e2f2ed;color:#23715f;font-size:9px}.summary>h1{margin:14px 0 5px;font-size:31px;line-height:1.25}.english{margin:0;color:#8c929e;font-size:11px}.price{padding:24px 0;border-bottom:1px solid #dfe2e8;font-size:27px;font-weight:800}.sku-picker{padding:22px 0;border-bottom:1px solid #dfe2e8}.sku-picker header{display:flex;justify-content:space-between;margin-bottom:10px;font-size:11px}.sku-picker header span{color:#6f7684}.sku-picker>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.sku-picker button{display:grid;min-height:68px;grid-template-columns:1fr auto;gap:4px;padding:10px;border:1px solid #d9dde4;border-radius:6px;background:#fff;color:#303441;text-align:left;cursor:pointer}.sku-picker button.active{border-color:#d94d6f;box-shadow:0 0 0 1px #d94d6f}.sku-picker button b{font-size:11px}.sku-picker button small{font-size:10px}.sku-picker button i{grid-column:1/-1;color:#828895;font-size:9px;font-style:normal}.notice{padding:18px;margin-top:18px;border-left:3px solid #d94d6f;background:#fff}.notice>b{font-size:11px}.notice p{color:#676e7b;font-size:11px;line-height:1.7}.notice dl{display:flex;justify-content:space-between;margin:0;font-size:10px}.notice dd{margin:0}.store-link{display:flex;align-items:center;justify-content:space-between;padding:20px 0}.store-link>div{display:flex;align-items:center;gap:10px}.store-link img,.store-link>div>span{display:grid;width:38px;height:38px;place-items:center;border-radius:5px;background:#2d3142;color:#fff;object-fit:cover}.store-link p{display:grid;margin:0}.store-link p b{font-size:11px}.store-link p small{margin-top:2px;color:#8a909d;font-size:9px}.store-link>a{padding:8px 11px;border:1px solid #d9dde4;border-radius:6px;color:#464c59;font-size:10px;text-decoration:none}.buy-box{margin-top:8px;padding-top:18px;border-top:1px solid #dfe2e8}.qty-row{display:flex;align-items:center;gap:14px;font-size:11px}.qty-row b{font-size:11px}.qty-row small{color:#828895}.qty{display:flex;align-items:center;border:1px solid #d9dde4;border-radius:6px;overflow:hidden}.qty button{width:34px;height:34px;border:0;background:#fff;color:#464c59;cursor:pointer;font-size:16px}.qty button:disabled{color:#cfd2d8;cursor:not-allowed}.qty input{width:46px;height:34px;border:0;border-left:1px solid #eef0f3;border-right:1px solid #eef0f3;text-align:center;font:inherit;font-size:12px}.add-error{margin:10px 0 0;color:#c0392b;font-size:11px}.add-cart{display:block;width:100%;margin-top:14px;padding:14px;border:0;border-radius:8px;background:#d94d6f;color:#fff;font-size:13px;font-weight:700;cursor:pointer}.add-cart:disabled{background:#cfd2d8;cursor:not-allowed}.details{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(300px,.6fr);gap:55px;padding-top:55px;margin-top:35px;border-top:1px solid #dfe2e8}.details article>small{color:#d14b6b;font-size:9px;font-weight:800}.details h2{margin:8px 0 18px}.details article p{color:#59606d;line-height:1.9;white-space:pre-line}.details article .secondary{color:#8b919d;font-size:12px}.details aside{display:grid;align-content:start;gap:0}.details aside>div{padding:18px 0;border-bottom:1px solid #dfe2e8}.details aside b{font-size:11px}.details aside p,.details aside a{color:#737a87;font-size:10px;line-height:1.7}.details dl{display:grid;grid-template-columns:70px 1fr;gap:8px;margin-bottom:0;font-size:10px}.details dt{color:#9196a1}.details dd{margin:0}.loading{display:grid;grid-template-columns:1fr 1fr;gap:40px}.loading>div{aspect-ratio:1;background:#e5e8ec}.loading section{display:grid;align-content:start;gap:12px}.loading i{height:50px;background:#e5e8ec;animation:pulse 1s infinite alternate}.state{display:grid;min-height:calc(100vh - 170px);place-content:center;place-items:center}.state a{color:#d14b6b}@keyframes pulse{to{opacity:.5}}@media(max-width:850px){.product-main,.details{grid-template-columns:1fr}.summary{padding-top:0}.details{gap:20px}}@media(max-width:520px){.product-page>main{padding-inline:16px}.product-main{gap:24px}.summary>h1{font-size:24px}.sku-picker>div{grid-template-columns:1fr}.details{padding-top:35px}.notice dl{display:grid;gap:5px}}
+</style>
+
+<style scoped>
+.rich-description{color:#59606d;line-height:1.9}
+.rich-description :deep(h1),.rich-description :deep(h2),.rich-description :deep(h3){color:#252832;line-height:1.35}
+.rich-description :deep(img){display:block;max-width:100%;height:auto;margin:20px auto;border-radius:8px}
+.rich-description :deep(blockquote){padding-left:14px;margin-left:0;border-left:3px solid #d94d6f}
+.rich-description :deep(pre){overflow:auto;padding:14px;border-radius:8px;background:#252832;color:#fff}
+.rich-description :deep(a){color:#d14b6b}
 </style>

@@ -7,6 +7,7 @@ export class ProductSkuDraftDto {
   @IsString() @Length(1, 160) nameZhCn!: string;
   @IsOptional() @IsString() @MaxLength(160) nameEnUs?: string;
   @IsOptional() @IsString() @MaxLength(80) barcode?: string;
+  @IsOptional() @IsString() @MaxLength(191) imageFileId?: string;
   @IsObject() optionValues!: Record<string, string>;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) weightGrams?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) lengthMm?: number;

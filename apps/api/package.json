@@ -15,7 +15,7 @@
     "db:seed": "prisma db seed",
     "openapi:generate": "pnpm build && node dist/openapi/generate-openapi.js",
     "openapi:check": "pnpm openapi:generate && git diff --exit-code -- openapi/api-v1.json",
-    "test": "node -r ts-node/register/transpile-only --test test/api.test.ts src/addresses/address.service.test.ts src/checkout/checkout-domain.test.ts src/orders/order-domain.test.ts src/orders/order.service.test.ts src/payments/payment-domain.test.ts src/payments/payment.service.test.ts src/jobs/job-domain.test.ts",
+    "test": "node -r ts-node/register/transpile-only --test test/api.test.ts src/addresses/address.service.test.ts src/checkout/checkout-domain.test.ts src/orders/order-domain.test.ts src/orders/order.service.test.ts src/payments/payment-domain.test.ts src/payments/payment.service.test.ts src/jobs/job-domain.test.ts src/products/product-rich-text.test.ts",
     "test:typecheck": "tsc -p tsconfig.test.json --noEmit"
   },
   "dependencies": {
@@ -32,11 +32,13 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "sanitize-html": "^2.17.6"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.10",
     "@types/node": "^24.0.13",
+    "@types/sanitize-html": "^2.16.1",
     "prisma": "^6.19.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
