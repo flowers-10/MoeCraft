@@ -119,6 +119,22 @@ enum JobStatus {
   DEAD_LETTER
 }
 
+enum AfterSaleType {
+  REFUND_ONLY
+  RETURN_REFUND
+}
+
+enum AfterSaleStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  AWAITING_RETURN
+  RETURNED
+  REFUND_PROCESSING
+  COMPLETED
+  CANCELLED
+}
+
 model FileAsset {
   id          String     @id @default(cuid())
   ownerId     String
@@ -711,6 +727,39 @@ model Job {
 
   @@index([status, runAt])
   @@index([deadLetterAt, createdAt])
+}
+
+model AfterSale {
+  id                 String         @id @default(cuid())
+  afterSaleNumber    String         @unique @db.VarChar(32)
+  userId             String
+  orderId            String         @db.Char(36)
+  orderItemId        String         @db.Char(36)
+  merchantOrderId    String
+  merchantId         String
+  storeId            String
+  type               AfterSaleType
+  status             AfterSaleStatus @default(REQUESTED)
+  reason             String         @db.VarChar(200)
+  description        String         @db.VarChar(2000)
+  refundAmount       Decimal        @db.Decimal(10, 2)
+  evidence           Json
+  returnCarrier      String?        @db.VarChar(40)
+  returnTrackingNumber String?      @db.VarChar(80)
+  returnShippedAt    DateTime?
+  merchantNote       String?        @db.VarChar(1000)
+  platformNote       String?        @db.VarChar(1000)
+  completedAt        DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@unique([userId, orderItemId])
+  @@index([userId, orderItemId])
+  @@index([userId, createdAt])
+  @@index([merchantId, status, createdAt])
+  @@index([orderId])
+  @@index([orderItemId])
 }
 
 model Coupon {

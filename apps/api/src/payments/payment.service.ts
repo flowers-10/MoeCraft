@@ -108,4 +108,14 @@ export class PaymentService{
 
   private view(payment:PaymentRecord):PaymentView{return{id:payment.id,orderId:payment.orderId,orderNumber:payment.order.orderNumber,status:payment.status,provider:payment.provider,providerPaymentId:payment.providerPaymentId,
     amount:money(payment.amount),currency:payment.currency,expiresAt:payment.expiresAt.toISOString(),paidAt:payment.paidAt?.toISOString()??null,updatedAt:payment.updatedAt.toISOString()};}
+
+  async handleRefund(orderId:string,amount:string):Promise<PaymentView>{
+    const payment=await this.prisma.paymentIntent.findUnique({where:{orderId},include:paymentInclude});
+    if(!payment||!payment.providerPaymentId)throw new ConflictException("PAYMENT_NOT_FOUND");
+    if(payment.status!=="SUCCEEDED")throw new ConflictException("PAYMENT_NOT_SUCCEEDED");
+    const refunded=await this.provider.refund(payment.providerPaymentId,amount,payment.currency);
+    const nextStatus=refunded.status==="REFUNDED"?"REFUNDED":"PARTIALLY_REFUNDED";
+    await this.prisma.order.update({where:{id:orderId},data:{status:"AFTER_SALE"}});
+    return this.view(await this.prisma.paymentIntent.update({where:{id:payment.id},data:{status:nextStatus},include:paymentInclude}));
+  }
 }

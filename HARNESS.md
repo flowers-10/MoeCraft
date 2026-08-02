@@ -321,9 +321,9 @@ MoeCraft 的目标不是单店展示站，而是一个允许商家申请入驻�
 
 #### G27 `feat(after-sales): implement refund and return workflow`
 
-- [ ] 按订单项申请仅退款/退货退款，填写原因、金额、凭证。
-- [ ] 商家同意/拒绝，买家填写退货物流，收货后触发退款；平台可仲裁。
-- [ ] 售后与订单/支付状态联动，退款总额不得超过可退金额。
+- [x] 按订单项申请仅退款/退货退款，填写原因、金额、凭证。
+- [x] 商家同意/拒绝，买家填写退货物流，收货后触发退款；平台可仲裁。
+- [x] 售后与订单/支付状态联动，退款总额不得超过可退金额。
 
 #### G28 `feat(payment): implement refunds and reconciliation records`
 

@@ -24,6 +24,7 @@ import { PromotionModule } from "./promotions/promotion.module";
 import { CheckoutModule } from "./checkout/checkout.module";
 import { OrderModule } from "./orders/order.module";
 import { PaymentModule } from "./payments/payment.module";
+import { AfterSaleModule } from "./after-sales/after-sale.module";
 import { JobModule } from "./jobs/job.module";
 import { AddressModule } from "./addresses/address.module";
 
@@ -49,6 +50,7 @@ import { AddressModule } from "./addresses/address.module";
     CheckoutModule,
     OrderModule,
     PaymentModule,
+    AfterSaleModule,
     JobModule,
     AddressModule
   ],
