@@ -339,8 +339,8 @@ MoeCraft 的目标不是单店展示站，而是一个允许商家申请入驻�
 
 #### G30 `feat(customer): add favorites and notifications`
 
-- [ ] 收藏商品/店铺；失效商品保留状态提示。
-- [ ] 站内信覆盖审核、订单、支付、发货、售后、结算；已读状态按用户保存。
+- [x] 收藏商品/店铺；失效商品保留状态提示。
+- [x] 站内信覆盖审核、订单、支付、发货、售后、结算；已读状态按用户保存。
 - [ ] 邮件/SMS/推送经 provider 抽象，支持模板、locale、重试和失败记录；用户可配置非交易通知偏好。
 
 #### G31 `feat(risk): add operational safety controls`

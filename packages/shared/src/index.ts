@@ -1,6 +1,7 @@
 ﻿export * from "./after-sales";
 export * from "./reconciliation";
 export * from "./review";
+export * from "./favorite";
 export * from "./api";
 export * from "./catalog";
 export * from "./cart";
