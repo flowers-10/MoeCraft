@@ -816,6 +816,27 @@ model Reconciliation {
   @@index([status, createdAt])
 }
 
+model Review {
+  id          String    @id @default(cuid())
+  userId      String
+  orderItemId String    @unique @db.Char(36)
+  productId   String
+  storeId     String
+  rating      Int
+  content     String    @db.VarChar(2000)
+  images      Json
+  isHidden    Boolean   @default(false)
+  replyContent String?  @db.VarChar(1000)
+  repliedBy   String?
+  repliedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([productId, isHidden, createdAt])
+  @@index([storeId, isHidden, createdAt])
+  @@index([userId, createdAt])
+}
+
 model Coupon {
   id             String       @id @default(cuid())
   storeId        String

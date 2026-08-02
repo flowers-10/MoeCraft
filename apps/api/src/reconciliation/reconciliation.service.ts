@@ -2,16 +2,14 @@
 import { Prisma } from "@prisma/client";
 import type { ReconciliationDiscrepancy, ReconciliationListItem, ReconciliationView } from "@moecraft/shared";
 import { PrismaService } from "../prisma/prisma.service";
-import { AuditService } from "../audit/audit.service";
 import type { RequestPrincipal } from "../auth/authorization";
 
 const money = (value: Prisma.Decimal | string | number) => new Prisma.Decimal(value).toFixed(2);
-
 type CsvRow = { orderNumber: string; expectedAmount: string };
 
 @Injectable()
 export class ReconciliationService {
-  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async list(principal: RequestPrincipal): Promise<ReconciliationListItem[]> {
     if (!principal.roles.some((r) => r === "PLATFORM_ADMIN" || r === "PLATFORM_OPERATOR")) throw new ForbiddenException("PERMISSION_DENIED");
@@ -44,7 +42,7 @@ export class ReconciliationService {
     if (existing) throw new ConflictException("RECONCILIATION_DUPLICATE");
     const paymentIntents = await this.prisma.paymentIntent.findMany({
       where: { status: { in: ["SUCCEEDED", "PARTIALLY_REFUNDED", "REFUNDED"] } },
-      select: { id: true, order: { select: { orderNumber: true } }, amount: true }
+      select: { order: { select: { orderNumber: true } }, amount: true }
     });
     const intentMap = new Map(paymentIntents.map((pi) => [pi.order.orderNumber, pi.amount]));
     const totalExpected = csvRows.reduce((sum, row) => sum.plus(new Prisma.Decimal(row.expectedAmount)), new Prisma.Decimal(0));
@@ -58,11 +56,7 @@ export class ReconciliationService {
       }
       if (!actual.equals(new Prisma.Decimal(row.expectedAmount))) {
         const diff = money(actual.minus(new Prisma.Decimal(row.expectedAmount)));
-        if (new Prisma.Decimal(diff).greaterThan(0)) {
-          discrepancies.push({ orderNumber: row.orderNumber, expectedAmount: row.expectedAmount, actualAmount: money(actual), difference: "+" + diff, type: "MISMATCH" });
-        } else {
-          discrepancies.push({ orderNumber: row.orderNumber, expectedAmount: row.expectedAmount, actualAmount: money(actual), difference: diff, type: "MISMATCH" });
-        }
+        discrepancies.push({ orderNumber: row.orderNumber, expectedAmount: row.expectedAmount, actualAmount: money(actual), difference: diff, type: "MISMATCH" });
       } else {
         matchedSum = matchedSum.plus(actual);
         matchedCount++;
@@ -71,7 +65,6 @@ export class ReconciliationService {
     const row = await this.prisma.reconciliation.create({
       data: { date, source: "PAYMENT_PROVIDER", fileName, totalExpected, totalMatched: matchedSum, matchedCount, unmatchedCount: discrepancies.length, discrepancies: discrepancies as unknown as Prisma.InputJsonValue, status: "PENDING" }
     });
-    await this.audit.write(principal.sub, "reconciliation.imported", "Reconciliation", row.id, { fileName, date });
     return this.get(principal, row.id);
   }
 
@@ -83,7 +76,6 @@ export class ReconciliationService {
     const updated = await this.prisma.reconciliation.update({
       where: { id }, data: { status: "RESOLVED", resolvedBy: principal.sub, resolvedAt: new Date(), notes }
     });
-    await this.audit.write(principal.sub, "reconciliation.resolved", "Reconciliation", row.id, { notes });
     return this.get(principal, updated.id);
   }
 }
