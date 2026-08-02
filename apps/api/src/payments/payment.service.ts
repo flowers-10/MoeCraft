@@ -1,4 +1,5 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
 import { ConfigService } from "@nestjs/config";
 import type { PaymentView, SandboxPaymentResult } from "@moecraft/shared";
 import { Prisma } from "@prisma/client";
@@ -111,9 +112,14 @@ export class PaymentService{
 
   async handleRefund(orderId:string,amount:string):Promise<PaymentView>{
     const payment=await this.prisma.paymentIntent.findUnique({where:{orderId},include:paymentInclude});
-    if(!payment||!payment.providerPaymentId)throw new ConflictException("PAYMENT_NOT_FOUND");
-    if(payment.status!=="SUCCEEDED")throw new ConflictException("PAYMENT_NOT_SUCCEEDED");
+    if(!payment)throw new NotFoundException("PAYMENT_NOT_FOUND");
+    if(!payment.providerPaymentId)throw new ConflictException("PAYMENT_NO_PROVIDER_ID");
+    if(payment.status!=="SUCCEEDED"&&payment.status!=="PARTIALLY_REFUNDED")throw new ConflictException("PAYMENT_NOT_SUCCEEDED");
+    const idempotencyKey=`refund:${orderId}:${randomUUID().slice(0,8)}`;
+    const existing=await this.prisma.refundRecord.findFirst({where:{paymentIntentId:payment.id,idempotencyKey}});
+    if(existing)return this.view(payment);
     const refunded=await this.provider.refund(payment.providerPaymentId,amount,payment.currency);
+    await this.prisma.refundRecord.create({data:{paymentIntentId:payment.id,idempotencyKey,providerRefundId:refunded.providerPaymentId,amount:new Prisma.Decimal(amount),currency:payment.currency,status:"SUCCEEDED",creatorId:payment.order.userId}});
     const nextStatus=refunded.status==="REFUNDED"?"REFUNDED":"PARTIALLY_REFUNDED";
     await this.prisma.order.update({where:{id:orderId},data:{status:"AFTER_SALE"}});
     return this.view(await this.prisma.paymentIntent.update({where:{id:payment.id},data:{status:nextStatus},include:paymentInclude}));

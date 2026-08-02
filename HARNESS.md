@@ -327,9 +327,9 @@ MoeCraft 的目标不是单店展示站，而是一个允许商家申请入驻�
 
 #### G28 `feat(payment): implement refunds and reconciliation records`
 
-- [ ] 退款请求幂等，记录渠道退款号、状态、失败原因和回调。
-- [ ] 每日基础对账导入/拉取，标记金额、状态和缺单差异，不自动静默改账。
-- [ ] 人工处理差异必须双重确认与审计。
+- [x] 退款请求幂等，记录渠道退款号、状态、失败原因和回调。
+- [x] 每日基础对账导入/拉取，标记金额、状态和缺单差异，不自动静默改账。
+- [x] 人工处理差异必须双重确认与审计。
 
 #### G29 `feat(review): implement verified-purchase reviews`
 
