@@ -864,6 +864,41 @@ model Notification {
   @@index([userId, type, createdAt])
 }
 
+model RiskFlag {
+  id         String   @id @default(cuid())
+  userId     String?
+  ipAddress  String?  @db.VarChar(45)
+  type       String   @db.VarChar(60)
+  severity   String   @default("LOW") @db.VarChar(20)
+  metadata   Json?
+  resolved   Boolean  @default(false)
+  resolvedBy String?
+  resolvedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, type, createdAt])
+  @@index([type, resolved, createdAt])
+  @@index([ipAddress, createdAt])
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  reporterId  String
+  targetType  String   @db.VarChar(40)
+  targetId    String   @db.VarChar(191)
+  reason      String   @db.VarChar(200)
+  description String   @db.VarChar(2000)
+  status      String   @default("PENDING") @db.VarChar(20)
+  handledBy   String?
+  handledAt   DateTime?
+  notes       String?  @db.VarChar(2000)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([reporterId, createdAt])
+  @@index([status, createdAt])
+}
+
 model Coupon {
   id             String       @id @default(cuid())
   storeId        String

@@ -24,6 +24,7 @@ import { PromotionModule } from "./promotions/promotion.module";
 import { CheckoutModule } from "./checkout/checkout.module";
 import { OrderModule } from "./orders/order.module";
 import { PaymentModule } from "./payments/payment.module";
+import { RiskModule } from "./risk/risk.module";
 import { FavoriteModule } from "./favorites/favorite.module";
 import { NotificationModule } from "./notifications/notification.module";
 import { ReviewModule } from "./reviews/review.module";

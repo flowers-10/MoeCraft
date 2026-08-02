@@ -2,6 +2,7 @@
 export * from "./reconciliation";
 export * from "./review";
 export * from "./favorite";
+export * from "./risk";
 export * from "./api";
 export * from "./catalog";
 export * from "./cart";
