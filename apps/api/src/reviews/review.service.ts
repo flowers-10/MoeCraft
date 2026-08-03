@@ -48,7 +48,8 @@ export class ReviewService {
     if (!principal.merchantId) throw new ForbiddenException("MERCHANT_SCOPE_REQUIRED");
     const record = await this.prisma.review.findUnique({ where: { id } });
     if (!record) throw new NotFoundException("REVIEW_NOT_FOUND");
-    if (record.storeId !== principal.merchantId) throw new ForbiddenException("PERMISSION_DENIED");
+    const store = await this.prisma.store.findUnique({ where: { id: record.storeId }, select: { merchantId: true } });
+    if (store?.merchantId !== principal.merchantId) throw new ForbiddenException("PERMISSION_DENIED");
     if (record.replyContent) throw new ConflictException("REVIEW_ALREADY_REPLIED");
     const updated = await this.prisma.review.update({ where: { id }, data: { replyContent: content, repliedBy: principal.sub, repliedAt: new Date() } });
     const user = await this.prisma.user.findUnique({ where: { id: record.userId }, select: { displayName: true } });

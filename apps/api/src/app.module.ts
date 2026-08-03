@@ -56,6 +56,11 @@ import { AddressModule } from "./addresses/address.module";
     OrderModule,
     PaymentModule,
     AfterSaleModule,
+    ReconciliationModule,
+    ReviewModule,
+    FavoriteModule,
+    NotificationModule,
+    RiskModule,
     JobModule,
     AddressModule
   ],

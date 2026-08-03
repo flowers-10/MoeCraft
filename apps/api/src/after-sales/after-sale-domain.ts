@@ -34,7 +34,7 @@ export function adminActions(status: AfterSaleStatus, type: AfterSaleType, isPla
   if (status === "REQUESTED") {
     actions.push("APPROVE", "REJECT");
   }
-  if (status === "RETURNED" && type === "RETURN_REFUND") {
+  if (status === "AWAITING_RETURN" && type === "RETURN_REFUND") {
     actions.push("CONFIRM_RETURNED");
   }
   if (status === "APPROVED" && type === "REFUND_ONLY") {

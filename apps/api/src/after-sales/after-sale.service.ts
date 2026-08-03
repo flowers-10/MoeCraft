@@ -139,9 +139,9 @@ export class AfterSaleService {
     if (!record) throw new NotFoundException("AFTER_SALE_NOT_FOUND");
     assertMerchantScope(principal, record.merchantId);
     if (record.type !== "RETURN_REFUND") throw new ConflictException("AFTER_SALE_TYPE_REFUND_ONLY");
-    if (record.status !== "RETURNED") throw new ConflictException("AFTER_SALE_STATUS_CONFLICT");
+    if (record.status !== "AWAITING_RETURN") throw new ConflictException("AFTER_SALE_STATUS_CONFLICT");
     const updated = await this.prisma.afterSale.update({
-      where: { id }, data: { status: "REFUND_PROCESSING" }
+      where: { id }, data: { status: "RETURNED" }
     });
     return this.enrichView(updated, await this.relatedFields(updated, principal.sub, false));
   }

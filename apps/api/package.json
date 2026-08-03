@@ -15,7 +15,7 @@
     "db:seed": "prisma db seed",
     "openapi:generate": "pnpm build && node dist/openapi/generate-openapi.js",
     "openapi:check": "pnpm openapi:generate && git diff --exit-code -- openapi/api-v1.json",
-    "test": "node -r ts-node/register/transpile-only --test test/api.test.ts src/addresses/address.service.test.ts src/checkout/checkout-domain.test.ts src/orders/order-domain.test.ts src/orders/order.service.test.ts src/orders/shipment-domain.test.ts src/orders/order-shipment.test.ts src/payments/payment-domain.test.ts src/payments/payment.service.test.ts src/jobs/job-domain.test.ts src/products/product-rich-text.test.ts",
+    "test": "node -r ts-node/register/transpile-only --test test/api.test.ts src/addresses/address.service.test.ts src/after-sales/after-sale.service.test.ts src/app-module.test.ts src/checkout/checkout-domain.test.ts src/orders/order-domain.test.ts src/orders/order.service.test.ts src/orders/shipment-domain.test.ts src/orders/order-shipment.test.ts src/payments/payment-domain.test.ts src/payments/payment.service.test.ts src/jobs/job-domain.test.ts src/products/product-rich-text.test.ts src/reviews/review.service.test.ts",
     "test:typecheck": "tsc -p tsconfig.test.json --noEmit"
   },
   "dependencies": {

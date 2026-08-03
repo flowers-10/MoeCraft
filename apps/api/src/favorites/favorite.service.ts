@@ -1,5 +1,6 @@
 ﻿import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import type { FavoriteView } from "@moecraft/shared";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
@@ -17,7 +18,7 @@ export class FavoriteService {
     return { favorited: true };
   }
   async list(userId: string, targetType?: string): Promise<FavoriteView[]> {
-    const where: any = { userId };
+    const where: Prisma.FavoriteWhereInput = { userId };
     if (targetType) where.targetType = targetType;
     return this.prisma.favorite.findMany({ where, orderBy: { createdAt: "desc" }, take: 200 }).then(r => r.map(f => ({ id: f.id, targetType: f.targetType as FavoriteView["targetType"], targetId: f.targetId, createdAt: f.createdAt.toISOString() })));
   }

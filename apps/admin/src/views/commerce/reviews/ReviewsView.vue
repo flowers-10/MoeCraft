@@ -1,7 +1,7 @@
 ﻿<script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import type { ReviewListItem, ReviewView } from "@moecraft/shared";
-import { apiRequest } from "../../../../api";
+import { apiRequest } from "../../../api";
 
 const items = ref<ReviewListItem[]>([]);
 const onlyHidden = ref(false);

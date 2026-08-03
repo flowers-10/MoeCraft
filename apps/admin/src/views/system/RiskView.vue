@@ -1,7 +1,7 @@
 ﻿<script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import type { ReportView, RiskFlagView } from "@moecraft/shared";
-import { apiRequest } from "../../../../api";
+import { apiRequest } from "../../api";
 
 const flags = ref<RiskFlagView[]>([]);
 const reports = ref<ReportView[]>([]);

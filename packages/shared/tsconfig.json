@@ -2,8 +2,9 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
     "declaration": true,
-    "emitDeclarationOnly": true,
     "noEmit": false
   },
   "include": ["src"]

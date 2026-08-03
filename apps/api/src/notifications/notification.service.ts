@@ -1,12 +1,13 @@
 ﻿import { Injectable } from "@nestjs/common";
 import type { NotificationView } from "@moecraft/shared";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class NotificationService {
   constructor(private readonly prisma: PrismaService) {}
   async list(userId: string, unreadOnly: boolean): Promise<NotificationView[]> {
-    const where: any = { userId };
+    const where: Prisma.NotificationWhereInput = { userId };
     if (unreadOnly) where.isRead = false;
     const rows = await this.prisma.notification.findMany({ where, orderBy: { createdAt: "desc" }, take: 100 });
     return rows.map(r => ({ id: r.id, type: r.type, title: r.title, body: r.body, isRead: r.isRead, referenceType: r.referenceType, referenceId: r.referenceId, createdAt: r.createdAt.toISOString() }));

@@ -1,7 +1,7 @@
 ﻿<script setup lang="ts">
 import { onMounted, ref } from "vue";
 import type { ReconciliationListItem, ReconciliationView } from "@moecraft/shared";
-import { apiRequest } from "../../../../api";
+import { apiRequest } from "../../../api";
 
 const items = ref<ReconciliationListItem[]>([]);
 const pending = ref(false);

@@ -1,5 +1,6 @@
 ﻿import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import type { ReportView, RiskFlagView } from "@moecraft/shared";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import type { RequestPrincipal } from "../auth/authorization";
 
@@ -9,7 +10,7 @@ export class RiskService {
 
   async listFlags(principal: RequestPrincipal, type?: string, resolved?: boolean): Promise<RiskFlagView[]> {
     if (!principal.roles.some(r => r === "PLATFORM_ADMIN" || r === "PLATFORM_OPERATOR")) throw new ForbiddenException("PERMISSION_DENIED");
-    const where: any = {};
+    const where: Prisma.RiskFlagWhereInput = {};
     if (type) where.type = type;
     if (resolved !== undefined) where.resolved = resolved;
     const rows = await this.prisma.riskFlag.findMany({ where, orderBy: { createdAt: "desc" }, take: 200 });
@@ -25,7 +26,7 @@ export class RiskService {
 
   async listReports(principal: RequestPrincipal, status?: string): Promise<ReportView[]> {
     if (!principal.roles.some(r => r === "PLATFORM_ADMIN" || r === "PLATFORM_OPERATOR")) throw new ForbiddenException("PERMISSION_DENIED");
-    const where: any = {};
+    const where: Prisma.ReportWhereInput = {};
     if (status) where.status = status;
     const rows = await this.prisma.report.findMany({ where, orderBy: { createdAt: "desc" }, take: 200 });
     return rows.map(r => ({ id: r.id, reporterId: r.reporterId, targetType: r.targetType, targetId: r.targetId, reason: r.reason, description: r.description, status: r.status as ReportView["status"], handledBy: r.handledBy, handledAt: r.handledAt?.toISOString() ?? null, notes: r.notes, createdAt: r.createdAt.toISOString(), updatedAt: r.updatedAt.toISOString() }));
