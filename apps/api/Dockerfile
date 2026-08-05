@@ -4,6 +4,10 @@ ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 ENV DATABASE_URL=mysql://build:build@127.0.0.1:3306/moecraft
 
+RUN apt-get update \
+  && apt-get install --no-install-recommends -y ca-certificates openssl \
+  && rm -rf /var/lib/apt/lists/*
+
 RUN corepack enable && corepack prepare pnpm@10.13.1 --activate
 WORKDIR /workspace
 
@@ -14,12 +18,12 @@ RUN pnpm install --frozen-lockfile
 
 COPY apps/api apps/api
 COPY packages/shared packages/shared
-RUN pnpm --filter @moecraft/api db:generate \
-  && pnpm --filter @moecraft/api build \
-  && pnpm --filter @moecraft/api deploy --prod --legacy /app \
-  && cd /app \
-  && /workspace/apps/api/node_modules/.bin/prisma generate --schema prisma/schema.prisma \
-  && node -e "require('@prisma/client')"
+
+RUN pnpm --filter @moecraft/api build
+RUN pnpm --filter @moecraft/api deploy --prod --legacy /app
+RUN cp -r /workspace/apps/api/prisma /app/prisma
+RUN cd /app && /workspace/apps/api/node_modules/.bin/prisma generate --schema prisma/schema.prisma
+RUN cd /app && node -e "require('@prisma/client')"
 
 FROM node:20-bookworm-slim AS runtime
 
