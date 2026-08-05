@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "packageManager": "pnpm@10.13.1",
   "scripts": {
+    "predev": "lsof -ti TCP:3100 -sTCP:LISTEN | xargs kill -9 2>/dev/null; lsof -ti TCP:3101 -sTCP:LISTEN | xargs kill -9 2>/dev/null; lsof -ti TCP:3102 -sTCP:LISTEN | xargs kill -9 2>/dev/null; true",
     "dev": "turbo run dev --parallel",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",

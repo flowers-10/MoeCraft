@@ -27,7 +27,7 @@ async function bootstrap() {
   setupOpenApi(app);
   app.enableShutdownHooks();
 
-  await app.listen(port);
+  await app.listen(port, "127.0.0.1");
   logger.info("api.started", { port });
 }
 
