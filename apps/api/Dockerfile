@@ -19,7 +19,9 @@ RUN pnpm install --frozen-lockfile
 COPY apps/api apps/api
 COPY packages/shared packages/shared
 
-RUN pnpm --filter @moecraft/api build
+RUN cd /workspace/apps/api && npx prisma generate
+RUN cd /workspace/apps/api && npx nest build 2>&1 | tee /tmp/nest-build.log || { echo "=== NEST BUILD FAILED ==="; cat /tmp/nest-build.log; exit 1; }
+
 RUN pnpm --filter @moecraft/api deploy --prod --legacy /app
 RUN cp -r /workspace/apps/api/prisma /app/prisma
 RUN cd /app && /workspace/apps/api/node_modules/.bin/prisma generate --schema prisma/schema.prisma
