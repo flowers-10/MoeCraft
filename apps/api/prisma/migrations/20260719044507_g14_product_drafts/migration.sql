@@ -1,5 +1,5 @@
 -- AlterTable
-ALTER TABLE `product` ADD COLUMN `copyrightNotice` VARCHAR(500) NULL,
+ALTER TABLE `Product` ADD COLUMN `copyrightNotice` VARCHAR(500) NULL,
     ADD COLUMN `descriptionEnUs` TEXT NULL,
     ADD COLUMN `descriptionZhCn` TEXT NULL,
     ADD COLUMN `manufacturer` VARCHAR(160) NULL,
@@ -8,7 +8,7 @@ ALTER TABLE `product` ADD COLUMN `copyrightNotice` VARCHAR(500) NULL,
     MODIFY `categoryId` VARCHAR(191) NULL;
 
 -- AlterTable
-ALTER TABLE `sku` ADD COLUMN `barcode` VARCHAR(80) NULL,
+ALTER TABLE `Sku` ADD COLUMN `barcode` VARCHAR(80) NULL,
     ADD COLUMN `heightMm` INTEGER NULL,
     ADD COLUMN `lengthMm` INTEGER NULL,
     ADD COLUMN `optionValues` JSON NULL,

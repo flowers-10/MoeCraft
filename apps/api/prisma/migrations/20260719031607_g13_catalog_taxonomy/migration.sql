@@ -1,12 +1,12 @@
 -- AlterTable
-ALTER TABLE `category` ADD COLUMN `descriptionEnUs` VARCHAR(500) NULL,
+ALTER TABLE `Category` ADD COLUMN `descriptionEnUs` VARCHAR(500) NULL,
     ADD COLUMN `descriptionZhCn` VARCHAR(500) NULL,
     ADD COLUMN `isActive` BOOLEAN NOT NULL DEFAULT true,
     ADD COLUMN `parentId` VARCHAR(191) NULL,
     ADD COLUMN `sortOrder` INTEGER NOT NULL DEFAULT 0;
 
 -- AlterTable
-ALTER TABLE `product` ADD COLUMN `brandId` VARCHAR(191) NULL,
+ALTER TABLE `Product` ADD COLUMN `brandId` VARCHAR(191) NULL,
     ADD COLUMN `characterId` VARCHAR(191) NULL,
     ADD COLUMN `franchiseId` VARCHAR(191) NULL;
 
