@@ -5,6 +5,10 @@
     "moduleResolution": "Bundler",
     "strict": true,
     "skipLibCheck": true,
-    "baseUrl": "."
+    "baseUrl": ".",
+    "paths": {
+      "@moecraft/shared": ["./packages/shared/src"],
+      "@moecraft/shared/*": ["./packages/shared/src/*"]
+    }
   }
 }
