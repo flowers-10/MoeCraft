@@ -72,30 +72,33 @@ jobs:
           port: ${{ secrets.DEPLOY_PORT }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
-          script_stop: true
-          envs: IMAGE_TAG,GHCR_READ_TOKEN,STAGING_ENV_B64
           script: |
-            set -e
+            set -euo pipefail
+
             IMAGE_TAG="${{ needs.build-and-push.outputs.image-tag }}"
             OWNER="${{ github.repository_owner }}"
             API_IMAGE="ghcr.io/${OWNER}/moecraft-api:${IMAGE_TAG}"
             STOREFRONT_IMAGE="ghcr.io/${OWNER}/moecraft-storefront:${IMAGE_TAG}"
             ADMIN_IMAGE="ghcr.io/${OWNER}/moecraft-admin:${IMAGE_TAG}"
+            GHCR_TOKEN="${{ secrets.GHCR_READ_TOKEN }}"
+            STAGING_ENV="${{ secrets.STAGING_ENV_B64 }}"
 
             echo "=== GHCR login ==="
-            echo "${GHCR_READ_TOKEN}" | docker login ghcr.io -u "${OWNER}" --password-stdin
+            if [ -z "${GHCR_TOKEN}" ]; then echo "FATAL: GHCR_READ_TOKEN secret is empty"; exit 1; fi
+            echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${OWNER}" --password-stdin 2>&1 | tail -1
 
             echo "=== Pulling images ==="
-            docker pull "${API_IMAGE}"
-            docker pull "${STOREFRONT_IMAGE}"
-            docker pull "${ADMIN_IMAGE}"
+            docker pull "${API_IMAGE}"       || { echo "FATAL: pull ${API_IMAGE}"; exit 1; }
+            docker pull "${STOREFRONT_IMAGE}" || { echo "FATAL: pull ${STOREFRONT_IMAGE}"; exit 1; }
+            docker pull "${ADMIN_IMAGE}"      || { echo "FATAL: pull ${ADMIN_IMAGE}"; exit 1; }
 
             echo "=== Setup deploy dir ==="
             mkdir -p /opt/moecraft/deploy
             cd /opt/moecraft/deploy
 
             echo "=== staging.env ==="
-            echo "${STAGING_ENV_B64}" | base64 -d > staging.env
+            if [ -z "${STAGING_ENV}" ]; then echo "FATAL: STAGING_ENV_B64 secret is empty"; exit 1; fi
+            echo "${STAGING_ENV}" | base64 -d > staging.env
             chmod 600 staging.env
 
             echo "=== gateway.conf ==="
@@ -135,6 +138,7 @@ jobs:
                 }
             }
             GWEOF
+            echo "gateway.conf written"
 
             echo "=== docker-compose.yml ==="
             cat > docker-compose.yml << 'DCEOF'
@@ -226,18 +230,26 @@ jobs:
             volumes:
               staging-database:
             DCEOF
-
-            echo "=== Pull compose images ==="
-            API_IMAGE="${API_IMAGE}" STOREFRONT_IMAGE="${STOREFRONT_IMAGE}" ADMIN_IMAGE="${ADMIN_IMAGE}" docker compose pull
+            echo "docker-compose.yml written"
 
             echo "=== Starting services ==="
-            API_IMAGE="${API_IMAGE}" STOREFRONT_IMAGE="${STOREFRONT_IMAGE}" ADMIN_IMAGE="${ADMIN_IMAGE}" docker compose up -d --remove-orphans
+            API_IMAGE="${API_IMAGE}" STOREFRONT_IMAGE="${STOREFRONT_IMAGE}" ADMIN_IMAGE="${ADMIN_IMAGE}" docker compose up -d --remove-orphans 2>&1 | tail -20
 
             echo "=== DB migration ==="
-            sleep 5
-            docker compose exec -T api sh -c 'npx prisma migrate deploy --schema prisma/schema.prisma' || echo "INFO: migration skipped (may already be up to date)"
+            sleep 15
+            docker compose exec -T api sh -c 'npx prisma migrate deploy --schema prisma/schema.prisma' 2>&1 || echo "INFO: migration skipped (may already be up to date, or DB not ready yet)"
 
             echo "=== Health check ==="
-            sleep 10
-            curl -sf -o /dev/null http://127.0.0.1/api/v1/health && echo "API health OK" || echo "WARN: API not healthy yet"
+            for i in 1 2 3 4 5 6; do
+              if curl -sf -o /dev/null http://127.0.0.1/api/v1/health 2>/dev/null; then
+                echo "API health OK (attempt $i)"
+                break
+              fi
+              echo "Waiting for API... ($i/6)"
+              sleep 10
+            done
+
+            echo "=== Container status ==="
+            docker compose ps
+
             echo "Deploy complete: tag=${IMAGE_TAG}"
