@@ -87,10 +87,17 @@ jobs:
             if [ -z "${GHCR_TOKEN}" ]; then echo "FATAL: GHCR_READ_TOKEN secret is empty"; exit 1; fi
             echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${OWNER}" --password-stdin 2>&1 | tail -1
 
-            echo "=== Pulling images ==="
-            docker pull --quiet "${API_IMAGE}"       || { echo "FATAL: pull ${API_IMAGE}"; exit 1; }
-            docker pull --quiet "${STOREFRONT_IMAGE}" || { echo "FATAL: pull ${STOREFRONT_IMAGE}"; exit 1; }
-            docker pull --quiet "${ADMIN_IMAGE}"      || { echo "FATAL: pull ${ADMIN_IMAGE}"; exit 1; }
+            echo "=== Pulling images (parallel) ==="
+            docker pull --quiet "${API_IMAGE}" &
+            PID_API=$!
+            docker pull --quiet "${STOREFRONT_IMAGE}" &
+            PID_SF=$!
+            docker pull --quiet "${ADMIN_IMAGE}" &
+            PID_AD=$!
+            wait $PID_API || { echo "FATAL: pull API failed"; exit 1; }
+            wait $PID_SF  || { echo "FATAL: pull storefront failed"; exit 1; }
+            wait $PID_AD  || { echo "FATAL: pull admin failed"; exit 1; }
+            echo "All images pulled"
 
             echo "=== Setup deploy dir ==="
             mkdir -p /opt/moecraft/deploy
