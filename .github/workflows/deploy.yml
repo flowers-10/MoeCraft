@@ -62,7 +62,7 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -72,7 +72,7 @@ jobs:
           port: ${{ secrets.DEPLOY_PORT }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
-          script: |
+          command_timeout: 25m          script: |
             set -euo pipefail
 
             IMAGE_TAG="${{ needs.build-and-push.outputs.image-tag }}"
@@ -88,9 +88,9 @@ jobs:
             echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${OWNER}" --password-stdin 2>&1 | tail -1
 
             echo "=== Pulling images ==="
-            docker pull "${API_IMAGE}"       || { echo "FATAL: pull ${API_IMAGE}"; exit 1; }
-            docker pull "${STOREFRONT_IMAGE}" || { echo "FATAL: pull ${STOREFRONT_IMAGE}"; exit 1; }
-            docker pull "${ADMIN_IMAGE}"      || { echo "FATAL: pull ${ADMIN_IMAGE}"; exit 1; }
+            docker pull --quiet "${API_IMAGE}"       || { echo "FATAL: pull ${API_IMAGE}"; exit 1; }
+            docker pull --quiet "${STOREFRONT_IMAGE}" || { echo "FATAL: pull ${STOREFRONT_IMAGE}"; exit 1; }
+            docker pull --quiet "${ADMIN_IMAGE}"      || { echo "FATAL: pull ${ADMIN_IMAGE}"; exit 1; }
 
             echo "=== Setup deploy dir ==="
             mkdir -p /opt/moecraft/deploy
